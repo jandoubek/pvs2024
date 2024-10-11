@@ -1,4 +1,4 @@
-# pvs2024
+6 pvs2024
 
 ## Zadani do hodiny 15.10.2024
 
@@ -9,16 +9,15 @@
 
 ### Basa Miroslav
 
-- 1) Italsky milovnik mercedesu 2) Jazzovy kontrabasista
- 
+- 1) Italsky milovnik mercedesu 2) Jazzovy kontrabasista 3) Student FJFI, napsal Bc. práci na téma 'Proceduránlního generování prostředí'
+
 ### Jochec Martin
 
-- 1) Pojistovaci magnat 2) Kutil ve společnosti tesařství Olomouc
+- 1) Pojistovaci magnat 2) Kutil ve společnosti tesařství Olomouc 3) Student FJFI, napsal Bc. práci na téma 'Adaptace autonomního agenta na chování uživatele'
  
 ### Miesbauer Jan
 
-- 1) laboratorní zařízení pro testování pryže a plastů 2) Podpůrné činnosti pro zemědělství a posklizňové činnosti
-
+- 1) Student FJFI, napsal Bc. Práci na téma 'Hledání parametrů diferenciálních rovnic' 2) Programátor ve společnosti M-line
 
 ## Zadani do hodiny 8.10.2024 
 
