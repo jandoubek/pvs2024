@@ -1,6 +1,6 @@
 Inteligentní klávesnice pro mobilní zařízení
  
-##Vize
+## Vize
 Cílem je vytvořit nadstavbu pro mobilní klávesnici, která by automaticky doporučovala komplexní doplnění textu, emoji a gify na základě kontextu psaní uživatele. Klávesnice by měla být schopná rozpoznat, co uživatel píše, a poskytnout relevantní návrhy. Dále by mohla doporučovat konkrétní relevatní zdroje k textu, jako například recepty při psaní o jídle. 
 Klávesnice by byla natrénovaná nicméně dále by se učení přizpůsobovalo individuálním preferencím uživatele. Uživatel by měl možnost nastavit úroveň doporučování emoji a gifů podle svých preferencí.
 
