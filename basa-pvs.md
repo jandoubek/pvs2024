@@ -1,4 +1,4 @@
-#﻿1) Inteligentní klávesnice pro mobilní zařízení
+Inteligentní klávesnice pro mobilní zařízení
  
 ##Vize
 Cílem je vytvořit nadstavbu pro mobilní klávesnici, která by automaticky doporučovala komplexní doplnění textu, emoji a gify na základě kontextu psaní uživatele. Klávesnice by měla být schopná rozpoznat, co uživatel píše, a poskytnout relevantní návrhy. Dále by mohla doporučovat konkrétní relevatní zdroje k textu, jako například recepty při psaní o jídle. 
@@ -14,7 +14,7 @@ Klávesnice by byla natrénovaná nicméně dále by se učení přizpůsobovalo
 Vytvoření jednoduché chatovací aplikace, kde by tato klavesnice mohla byt integrována automaticky, podpora dalších jazyků krom češtiny, řešení databáze a ukládání na cloud, řešení možné budoucí spolupráce s firmami v podobě přednějšího doporučení pomocí gifů, doplnování textu atd.
 
 ﻿
-#2) Procedurální 2D hra
+Procedurální 2D hra
 
 ## Vize
 Cílem je vytvořit 2D hru, ve které se mapa generuje procedurálně pomocí šumů, jako je Perlin Noise, Simplex noise.
