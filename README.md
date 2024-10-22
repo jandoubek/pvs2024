@@ -9,15 +9,15 @@
 
 ### Basa Miroslav
 
-- 1) Milovník asijské kuchyně 2) Hráč na kytaru 3) Student FJFI, napsal Bc. práci na téma 'Procedurální generování prostředí'
+- 1) Milovník asijské kuchyně 2) Hráč na kytaru 3) Student FJFI, napsal Bc. práci na téma 'Procedurální generování prostředí' 4) Má mnoho mazlíčků
 
 ### Jochec Martin
 
-- 1) Pojistovaci magnat 2) Kutil ve společnosti tesařství Olomouc 3) Student FJFI, napsal Bc. práci na téma 'Adaptace autonomního agenta na chování uživatele' 4) Vášnivý hráč her
+- 1) Zajímá se o Elektroniku, Auta a Vesmír 2) Neustále filosofuje 3) Student FJFI, napsal Bc. práci na téma 'Adaptace autonomního agenta na chování uživatele' 4) Vášnivý hráč her
  
 ### Miesbauer Jan
 
-- 1) Student FJFI, napsal Bc. Práci na téma 'Hledání parametrů diferenciálních rovnic' 2) Programátor ve společnosti M-line 3) Žije v Prachaticích - Nebahovy
+- 1) Student FJFI, napsal Bc. Práci na téma 'Hledání parametrů diferenciálních rovnic' 2) Programátor ve společnosti M-line 3) Žije v Prachaticích - Nebahovy 4) Studuje Matematické Inženýrství
 
 ## Zadani do hodiny 8.10.2024 
 
