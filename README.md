@@ -1,4 +1,9 @@
 # pvs2024
+## Zadani do hodiny 29.10.2024
+### Základní layout
+- Vytvoření základního layoutu s dvěma vyhledávacími políčky a tlačítkem.
+- Ověření přístupu k datům v databázi a jejich následné zpracování.
+- Návrh potřebných HTTP metod a interakcí, včetně definice endpointů.
 
 ## Zadani do hodiny 15.10.2024
 
