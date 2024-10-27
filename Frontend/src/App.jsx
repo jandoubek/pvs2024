@@ -1,35 +1,61 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import { Autocomplete, TextField, Button, Box, Typography } from '@mui/material';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const App = () => {
+  const [from, setFrom] = useState(null);
+  const [to, setTo] = useState(null);
+  const [searchResult, setSearchResult] = useState('');
+
+  // Prozatimní konstanty
+  const locations = [
+    { label: 'Praha' },
+    { label: 'Děčín' },
+    { label: 'Ostrava' }
+  ];
+
+  const handleSearch = () => {
+    if (from && to) {
+      setSearchResult(`Hledám spoj z: ${from.label} do: ${to.label}`);
+    } else {
+      setSearchResult('Prosím vyberte místo odjezdu i příjezdu.');
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <Box className="container">
+      <Autocomplete
+        options={locations}
+        value={from}
+        onChange={(event, newValue) => setFrom(newValue)}
+        renderInput={(params) => <TextField {...params} label="Odkud" />}
+        className="input-field"
+      />
 
-export default App
+      <Autocomplete
+        options={locations}
+        value={to}
+        onChange={(event, newValue) => setTo(newValue)}
+        renderInput={(params) => <TextField {...params} label="Kam" />}
+        className="input-field"
+      />
+
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleSearch}
+        className="search-button"
+      >
+        Hledat
+      </Button>
+
+      {searchResult && (
+        <Typography variant="body1" className="result-text">
+          {searchResult}
+        </Typography>
+      )}
+    </Box>
+  );
+};
+
+export default App;
