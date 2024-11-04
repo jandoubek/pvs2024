@@ -1,0 +1,924 @@
+/// Class to create and extract zip<br/>
+/// https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT<br/>
+/// https://www.zlib.net/manual.htm<br/>
+/// win 32 bit date time format https://msdn.microsoft.com/en-us/library/9kkf9tah.aspx<br/>
+/// source https://github.com/nlzv/isc_zip<br/>
+/// <br/>
+/// example how to zip
+/// <EXAMPLE>
+/// set zip=##class(%zip).%New()
+/// set zip.SourceDir="/mnt/tmp/zip/testpack/"
+/// set zip.files(1)="test1.txt"
+/// set zip.files(2)="test2.txt"
+/// set zip.packfile="/mnt/tmp/zip/testpack/test.zip"
+/// do zip.pack()
+/// </EXAMPLE>
+/// example how to unzip
+/// <EXAMPLE>
+/// set zip=##class(%zip).open("/mnt/tmp/zip/testunpack/test.zip")
+/// set zip.TargetDir="/mnt/tmp/zip/testunpack/"
+/// do zip.unpack()
+/// </EXAMPLE>
+/// limitations<br/>
+/// on unicode cache kernel only 8bits file names (i.e. in latin)<br/>
+Class ALVA.GENERALAPI.zip Extends %RegisteredObject
+{
+
+/// files LFH (list file header) array<br/>
+/// also used as files to add in zip arhive<br/>
+Property files As %String [ MultiDimensional ];
+
+/// relative file path to LFH index map 
+Property idxlfhfiles As %String [ MultiDimensional ];
+
+/// files CDR (common diretory record) array<br/>
+Property cdrfiles As %String [ MultiDimensional ];
+
+/// relative file path to CDR index map 
+Property idxcdrfiles As %String [ MultiDimensional ];
+
+/// file comments array, LFH index
+Property fcomments As %String [ MultiDimensional ];
+
+/// offsets of LFHs
+Property LFHo As %String [ MultiDimensional ];
+
+/// binary images of LFHs
+Property LFHbin As %String [ MultiDimensional ];
+
+/// CDRs (common directory name) offsets
+Property CDRo As %String [ MultiDimensional ];
+
+/// CDRs binary images
+Property CDRbin As %String [ MultiDimensional ];
+
+/// data descriptor
+Property DDbin As String [ MultiDimensional ];
+
+/// the name of zip/pack file
+Property packfile As %String;
+
+/// length of static part of list file header
+Property lfhlen As %Integer;
+
+Property eocdr64len As %Integer;
+
+Property eocdl64len As %Integer;
+
+/// length of static part of common directory record
+Property cdrlen As %Integer;
+
+Property gzipminhdrlen As %Integer;
+
+/// auxilary var to track location of LFH in packfile
+Property lfhoffset As %Integer;
+
+Property error As %String;
+
+/// zip comment
+Property ZipComment As %String;
+
+/// source directory
+/// add file from this directory
+/// it becomes current during pack()
+Property SourceDir As %String;
+
+/// directory to unpack files
+Property TargetDir As %String;
+
+/// check wether Target sub directory is created
+Property TargetSubDirs As %String [ MultiDimensional ];
+
+/// use = 0 existed archive, unpack<br/>
+/// use = 1 create archive, pack, add file to arhive<br/>
+Property use As %Boolean;
+
+/// need use zip64 extension due to some component larger then 2**32-1 bytes<br/>
+Property zip64 As %Boolean;
+
+/// 1 use zip64 extra extension even file size less than 2**32-1<br/>
+/// 0 use zip64 extra extension if file size more than 2**32-1<br/>
+Property forcezip64 As %Boolean;
+
+/// $ZERROR saved
+Property ZE As %String;
+
+/// 0 little endian platform
+/// 1 big    endian platform
+Property endian As %Boolean;
+
+/// time of the last pack/unpack function
+Property time As %String;
+
+/// size during pack/unpack functions<br/>
+/// in future it will be rsize 
+Property rsize As %String;
+
+/// writing size during pack/unpack functions<br/>
+/// not yet calculated
+Property wsize As %String;
+
+Property unpackErrors As %String [ MultiDimensional ];
+
+/// open existed zip archive<br/>
+/// return %zip object<br/> 
+/// files property is populated by relative filenames in archive<br/>
+ClassMethod open(zipfile)
+{
+ set eofold=$SYSTEM.Process.SetZEOF(1)
+ set zip=..%New()
+ try { close zipfile } catch {} open zipfile:("RUK\RAW\"):1
+ if $test='1 set zip.error="open file" quit zip
+ 
+ set lfhsig=..lfhsig()
+ set cdrsig=..cdrsig()
+ set eocdrsig=..eocdrsig()
+ set zip64eocdrsig=..zip64eocdrsig()
+ set zip64eocdlsig=..zip64eocdlsig()
+ 
+ set lfhlen=..structlen(..lfhmeta())
+ set cdrlen=..structlen(..cdrmeta())
+ set eocdrlen=..structlen(..eocdrmeta())
+ 
+ use zipfile 
+ set foffset=0
+ set ilfh=0 set icdr=0
+ set fnlen=0,ziplen=0,extralen=0
+ set err=0
+ set maxsize=4294967295
+ #;B  ; open
+ read bin#4 set foffset=foffset+4
+ if $E(bin,$L(bin)-3,$L(bin))'=lfhsig { for  { read x#1 if $zeof=-1 { set err=1 quit } if foffset>512 { set err=2 quit } set bin=bin_x set foffset=foffset+1 if $E(bin,$L(bin)-3,$L(bin))=lfhsig || ($E(bin,$L(bin)-3,$L(bin))=cdrsig) { quit  } }}
+ if err>0 set zip.error=err quit zip
+ #;B  ; open start zip
+ for {
+   if bin=lfhsig {
+     #;B  ;LFH start
+     set lfhbin=bin read bin#(lfhlen-4)  set lfhbin=lfhbin_bin set ilfh=ilfh+1 
+     set zip.LFHo(ilfh)=foffset-4 
+     do ..getLFH(lfhbin,.sig,.version,.flag,.method,.time,.date,.crc,.zipsize,.size,.fnlen,.extralen)     
+     if fnlen>0 { read fname#fnlen  set zip.files(ilfh)=fname } else { set fname="" }
+     if extralen>0 { read extra#extralen } else { set extra="" }
+     
+     #; data descriptor
+     if $zb(flag,8,1) {
+        B ;data descriptor not implemented
+     } 
+     set lfhbin=lfhbin_fname_extra
+     if size=maxsize || (zipsize=maxsize) do zip.LFHgetFileSizes(.lfhbin,.size,.zipsize,.zip64)
+     set zip.LFHbin(ilfh)=lfhbin
+     set foffset=foffset+lfhlen-4+fnlen+extralen+zipsize
+     use zipfile:foffset
+     #;B  ;LFH end
+   }
+   #; file data 1
+   #; data descrriptor 1
+   #; common directory record
+   elseif bin=cdrsig {
+      #;B ; CDR start
+      set cdrbin=bin read bin#(cdrlen-4) set icdr=icdr+1 set cdrbin=cdrbin_bin
+      set zip.CDRo(icdr)=foffset-4 
+      do ..getCDH(cdrbin, .sig, .madever, .extrver, .flag, .meth, .ftime, .fdate, .crc, .zipsize, .size, .fnlen, .extralen, .fclen, .dns, .ifa, .efa, .rolh)
+      set foffset=foffset+cdrlen-4
+      if fnlen>0 { read fname#fnlen set zip.cdrfiles(icdr)=fname } else { set fname="" }
+      if extralen>0 { read extra#extralen } else { set extra=""}
+      if fclen>0 { read fcomment#fclen set zip.fcomment(icdr)=fcomment } else { set fcomment="" }
+      set zip.CDRbin(icdr)=cdrbin_fname_extra_fcomment
+      set foffset=foffset+fnlen+extralen+fclen
+      use zipfile:foffset
+      #;B ; CDR end
+   }
+   #; zip64eocdr
+   elseif bin=zip64eocdrsig {
+      #;B ; zip64eocdrsig start
+      read eocdr64bin#(zip.eocdr64len-4)
+      set eocdr64bin=bin_eocdr64bin
+      set len=$ZQA(eocdr64bin,5)
+      set len=len-zip.eocdr64len+12
+      if len'=0 read extbin#len
+      set foffset=foffset+zip.eocdr64len+len
+      #;B ; zip64eocdrsig end
+   }
+   #; zip64eocdlsig
+   elseif bin=zip64eocdlsig {
+      #;B ; zip64eocdlsig start
+      read eocdl64bin#(zip.eocdl64len-4)
+      set eocdl64bin=bin_eocdl64bin
+      set foffset=foffset+zip.eocdl64len
+      #;B ; zip64eocdlsig end
+   } 
+   #; end of central directory record
+   elseif bin=eocdrsig {
+     #;B  ; end of central directory start
+     set eocdrbin=bin read bin#eocdrlen-4 set eocdrbin=eocdrbin_bin
+     do ..getEOCDR(eocdrbin,.sig,.zipcommentlen)
+     if zipcommentlen>0 read v#zipcommentlen set zip.ZipComment=v
+     #;B  ; end of central directory end
+     quit
+   } 
+   read bin#4 set foffset=foffset+4
+ }
+ use 0 close zipfile
+ set zip.packfile=zipfile
+ do zip.BuildFileIndex()
+ if eofold=0 do $SYSTEM.Process.SetZEOF(0)
+ quit zip
+}
+
+/// close pack file, i.e. create common directories records
+Method closepack()
+{
+ #; write CDRs 
+ #;B ; start add CDRs
+ set cdroffset=..lfhoffset
+ set oeocdr=cdroffset
+ set zip64=0 
+ set len=0
+ set i="" for {
+    set i=$order(..LFHbin(i),1,binlfh) quit:i=""
+    do ..mkCDRfromLFH(.bincdr,binlfh,..LFHo(i),,,,.zip64)
+    #;B  ; mkdCDRfromLFH done
+    if zip64=1 { set ..zip64=1 }
+    set len=len+$L(bincdr)
+    W bincdr
+ }
+
+ #; write end of CDR
+ #;B  ; write end of CDR
+ set n=$order(..files(""),-1)
+ if ..zip64=1 {
+   do ..mkEOCDR64(.bineocdr64,cdroffset,len,n) 
+   W bineocdr64
+   do ..mkEOCDL64(.bineocdl64,cdroffset+len)
+   W bineocdl64
+   do ..mkEOCDR(.bineocdr,cdroffset#4294967296,len#4294967296,n)
+   #;do ..mkEOCDR(.bineocdr,4294967295,4294967295,n)
+   #;do ..mkEOCDR(.bineocdr,0,0,n)
+   W bineocdr
+   #;B  ; eocdr64
+ }  
+ else { 
+   do ..mkEOCDR(.bineocdr,cdroffset,len,n) 
+   W bineocdr
+ }
+}
+
+/// create zip archive with list of files in files property<br/>
+/// SourceDir relative<br>
+/// packfile argument override packfile property<br/>
+Method pack(packfile = "")
+{
+ set ..time=$zh
+ set ..rsize=0
+ set ..zip64=0
+ if packfile="" { set packfile=..packfile }
+ else { set ..packfile=packfile }
+ try { close packfile } catch {} open packfile:("NWUK\RAW\")
+ use packfile
+ set dir=$SYSTEM.Process.CurrentDirectory(..SourceDir)
+ set ..lfhoffset=0
+ set i="" for { set i=$order(..files(i),1,file) quit:i=""  do ..packbyid(i) }
+ use packfile:..lfhoffset 
+ do ..closepack()
+ close packfile
+ do $SYSTEM.Process.CurrentDirectory(dir)
+ set ..time=$zh-..time
+}
+
+/// add one file to packfile
+Method packbyid(id)
+{
+  #;B ; start pack add file by id
+  set file=..files(id)
+  set packfile=..packfile
+  set gzipminhdrlen=..gzipminhdrlen
+  set lfhoffset=..lfhoffset
+  use packfile:lfhoffset
+  set size=##class(%File).GetFileSize(file)
+  set ..rsize=..rsize+size
+  set hlocalmoddattime=$zu(140,2,file,0)
+  set tsodbc=$zdt(hlocalmoddattime,3)
+  set date=..dosDateYMDtoBin($E(tsodbc,1,4),$E(tsodbc,6,7),$E(tsodbc,9,10))
+  set time=..dosTimeHMStoBin($E(tsodbc,12,13),$E(tsodbc,15,16),$E(tsodbc,18,19))
+  set maxsize=2**32-1
+  if size>maxsize || ..forcezip64 { set zip64=1 }
+  else { set zip64=0 }
+  #; version 2.0 low order byte
+  set version=$C(20,0)
+  set flag=$C(0,0)
+  #; method deflate
+  set method=$C(8,0)
+  #;B ; before make lfh
+  if zip64=1 {
+    set extraZip64=$C(1,0)_$ZWC(16)_$ZQC(size)_$ZQC(0)
+#if 0   
+    #; data descriptor
+    set flag=$ZWC(8)
+    #; datadesc
+    set datadesc=$C(0,0,0,0)_$ZQC(zipsize)_$ZQC(size)
+    #;set datadesc= $$datadescsig()_datadesc
+    set ..DDbin(i)=datadesc
+#endif    
+  } 
+  if zip64 { do ..mkLFH(.binlfh,version,flag,method,time,date,/*crc*/, maxsize, maxsize)}
+  else { do ..mkLFH(.binlfh,version,flag,method,time,date,/*crc*/,/*zipsize*/, size) }
+  #;B ; after make lfh
+  do ..LFHsetFile(.binlfh,file)
+  if zip64 { do ..LFHsetExtra(.binlfh,extraZip64) }
+  set ..LFHbin(id)=binlfh
+  use packfile:..lfhoffset
+  W binlfh
+  set rawoffset=..lfhoffset+..lfhFullLen(binlfh)-gzipminhdrlen
+  use packfile:rawoffset
+  use packfile:(/GZIP=1)
+  try { close file } catch {} open file:("RUK\RAW\")
+  set len=0
+  #;B  ; zip
+  for {
+     use file read bin 
+     use packfile write bin
+     set len=len+$L(bin)
+     if len'<size quit
+  } 
+  close file
+  close packfile
+  set offset=##class(%File).GetFileSize(packfile)-8
+  open packfile:("RWUK\RAW\")
+  use packfile:(/GZIP=0)
+  use packfile:offset
+  #;B  ; read gzip tailor
+  read crc#4 read isize#4
+  set zipsize=offset-..lfhoffset-..lfhFullLen(binlfh)
+  #;B  ;zipsize is calculated
+  do ..LFHsetCRC(.binlfh,crc)
+  do ..LFHsetZipSize(.binlfh,zipsize)
+  use packfile:..lfhoffset
+  W binlfh
+  set ..LFHbin(id)=binlfh
+  set ..LFHo(id)=..lfhoffset
+  set ..lfhoffset=offset
+  #;B  ; pack add file by id end
+  if zip64 { set ..zip64=1 }
+}
+
+/// unzip archive
+Method unpack(zipfile = "", targetdir = "")
+{
+  if targetdir'="" { set ..TargetDir=targetdir }
+  else { set targetdir=..TargetDir }
+  set curdir=$SYSTEM.Process.CurrentDirectory(targetdir)
+  kill ..TargetSubDirs
+  set idlast=$order(..files(""),-1)
+  for id=1:1:idlast { do ..unpackbyid(id,targetdir) }
+  do $SYSTEM.Process.CurrentDirectory(curdir)
+}
+
+/// unpack only selected files
+Method unpackSel(zipfile = "", targetdir = "")
+{
+}
+
+/// unpack just one file
+Method unpackfile(file)
+{
+}
+
+Method unpackbyid(id, targetdir)
+{
+   set $ztrap="error"
+   set ..ZE=""
+   set io=$io
+   set maxsize=4294967295
+   set zip64=0
+   set restorepack=0
+   set targetfile=""
+   set packfile=..packfile
+   set lfhbin=..LFHbin(id)
+   set filename=..files(id)
+   set offset=..LFHo(id)
+   close packfile
+   open packfile:("RWUK\RAW\") use packfile
+   do ..getLFH(..LFHbin(id),,.ver,.flag,.meth,.time,.date,.crc,.zipsize,.size,.fnlen,.extralen)
+   #;B  ; unpackbyid.getLFH
+   if size=maxsize || (zipsize=maxsize ) { set zip64=1 }
+   if zip64=1 { do ..LFHgetFileSizes(..LFHbin(id),.size,.zipsize) }
+   set oraw=offset+$L(..LFHbin(id))
+   set gzipminhdr=..gzipminhdr()
+   set gziphdrlen=$L(gzipminhdr)
+   set ogziphdr=oraw-gziphdrlen
+   
+   #;B ; gziphdr end
+         
+   set ogziptlr=offset+..structlen(..lfhmeta())+fnlen+extralen+zipsize
+   set gziptlr=..gziptlr(crc,size)
+   set gziptlrlen=$L(gziptlr)
+   
+   set restorepack=1
+   
+   #; now put in file gziphdr
+   use packfile:ogziphdr
+   read savedgziphdr#gziphdrlen
+   use packfile:ogziphdr
+   write gzipminhdr
+   
+   #; now put in file gziptlr
+   use packfile:ogziptlr
+   read savedgziptlr#gziptlrlen
+   use packfile:ogziptlr
+   write gziptlr
+   close packfile
+   
+   set targetfile=targetdir_filename
+   #; check directory of file and create it if it is missed
+   set dir=##class(%File).GetDirectory(targetfile)
+   if '$D(..TargetSubDirs(dir)) {
+     if '##class(%File).DirectoryExists(dir) { set ret=##class(%File).CreateDirectoryChain(dir) }
+     set ..TargetSubDirs(dir)=""
+   } 
+
+   #;B ;copy
+   open packfile:("RUK\RAW\")
+   use packfile:ogziphdr
+   use packfile:(/GZIP=1)
+   open targetfile:("NWUK\RAW\")
+   set len=0
+   set buflen=65536
+   #;B  ;loop
+   for {
+     use packfile
+     if len+buflen<size { read bin#buflen }
+     else { read bin#(size-len)}
+     set len=len+$L(bin)
+     use targetfile write bin
+     if len'<size quit
+   }
+exit
+   use io
+   try { close packfile } catch {}
+   try { close targetfile } catch {}
+   
+   #; restore updates gzip header and tailer back
+
+   if restorepack {
+      open packfile:("WUK\RAW\")
+      if $data(savedgziphdr) {
+        use packfile:ogziphdr
+        write savedgziphdr
+      }
+      if $data(savedgziptlr) {
+        use packfile:ogziptlr
+        write savedgziptlr
+      }
+      use io close packfile
+   }
+   quit
+error
+  set $ztrap=""
+  set ..ZE=$ZE
+  goto exit
+}
+
+ClassMethod getLFH(bin, magic, version, flag, method, time, date, crc, zipsize, size, fnlen, extralen)
+{
+ set magic=$E(bin,1,4)
+ set version=$E(bin,5,6)
+ set flag=$E(bin,7,8)
+ set method=$E(bin,9,10)
+ set time=$E(bin,11,12)
+ set date=$E(bin,13,14)
+ set crc=$E(bin,15,18)
+ set zipsize=$ZLA($E(bin,19,22))
+ set size=$ZLA($E(bin,23,26))
+ set fnlen=$ZWA($E(bin,27,28))
+ set extralen=$ZWA($E(bin,29,30))
+ quit
+}
+
+ClassMethod LFHgetLengths(bin, fnlen, extralen)
+{
+  set fnlen=$ZWA($E(bin,27,28))
+  set extralen=$ZWA($E(bin,29,30))
+}
+
+Method lfhFullLen(bin)
+{
+  do ..LFHgetLengths(.bin,.fnlen,.extralen)
+  quit ..lfhlen+fnlen+extralen
+}
+
+ClassMethod mkLFH(bin, version = "", flag = "", method = "", time = "", date = "", crc = "", packsize = "", size = "", fnlen = "", extralen = "")
+{
+   set lfhlen=..lfhlen()
+   if $L($G(bin))<lfhlen set bin=$TR($J("",lfhlen)," ",$C(0))
+   set $E(bin,1,4)=..lfhsig()
+   #; default 2.0   
+   if version'="" set $E(bin,5,6)=version
+   if flag'=""  set $E(bin,7,8)=flag
+   if method'="" set $E(bin,9,10)=method
+   if time'="" && ($L(time)=2) set $E(bin,11,12)=time
+   if date'="" && ($L(date)=2) set $E(bin,13,14)=date
+   if packsize'="" set $E(bin,19,22)=$ZLC(packsize)
+   if size'="" set $E(bin,23,26)=$ZLC(size)
+   if fnlen'="" set $E(bin,27,28)=$ZWC(fnlen)
+   if extralen'="" set $E(bin,29,30)=$ZWC(extralen)
+}
+
+ClassMethod LFHsetFile(bin, file)
+{
+  do ..getLFH(.bin,.fnlenold,.extralen)
+  set lfhlen=..structlen(..lfhmeta())
+  set binhead=$E(bin,1,lfhlen)
+  set fnold=$E(bin,lfhlen+1,lfhlen+fnlenold)
+  set binextra=$E(bin,lfhlen+fnlenold+1,lfhlen+fnlenold+extralen)
+  set $E(binhead,27,28)=$ZWC($L(file))
+  set bin=binhead_file_binextra
+}
+
+ClassMethod LFHsetCRC(bin, crc)
+{
+  set $E(bin,15,18)=crc
+}
+
+ClassMethod LFHsetZipSize(bin, zipsize)
+{
+ set lfhlen=..lfhlen()
+ set fnlen=$ZWA($E(bin,27,28))
+ set zipsizeold=$E(bin,19,22)
+ if zipsizeold=$C(255,255,255,255) {
+   set o=lfhlen+fnlen
+   set extrahid=$E(bin,o+1,o+2)
+#; expect to be 1st
+   if extrahid=$C(1,0) {
+     set $E(bin,lfhlen+fnlen+##expression(1+4+8),lfhlen+fnlen+##expression(1+4+8+8))=$ZQC(zipsize)
+   } 
+#; this is error   
+   else {} 
+ }
+ else {
+   set $E(bin,19,22)=$ZLC(zipsize)
+ }
+}
+
+Method LFHgetFileSizes(bin, size, zipsize, zip64)
+{
+  set lfhlen=..lfhlen
+  set zip64id=$C(1,0)
+  set maxsize=$C(255,255,255,255)
+  set fnlen=$ZWA(bin,27)
+  set extrasize=$ZWA(bin,29)
+  set size=$E(bin,19,22)
+  set zipsize=$E(bin,23,26)
+  if size'=maxsize || (zipsize'=maxsize) { set size=$ZLA(size) set zipsize=$ZLA(zipsize) quit }
+  set extra=$E(bin,lfhlen+fnlen+1,lfhlen+fnlen+extrasize)
+  set o=0 for  {
+    set extrahid=$E(extra,o+1,o+2)
+    set extrahlen=$ZWA(extra,o+3)
+    if extrahid=zip64id quit
+    set o=o+4+extrahlen
+    if o'< extrasize quit
+  }
+  if extrahid=zip64id {   
+    set size=$ZQA(extra,o+##expression(1+4))
+    set zipsize=$ZQA(extra,o+##expression(1+4+8))
+  }
+  else { set size="" set zipsize="" }
+}
+
+ClassMethod LFHsetExtra(bin, extra)
+{
+  set extralen=$L(extra)
+  set lfhlen=30
+  do ..LFHgetLengths(.bin,.fnlen,.extrlenold)  
+  set $E(bin,29,30)=$ZWC(extralen)
+  set bin=$E(bin,1,lfhlen+fnlen)_extra
+}
+
+Method getLFSrawstream(id)
+{
+  set foffset=..LFHo(id)
+  do ..getLFH(..LFHbin(id),,.ver,.flag,.meth,.time,.date,.crc,.zipsize,.size,.fnlen,.extralen)
+  quit foffset+..structlen(..lfhmeta())+fnlen+extralen
+}
+
+/// parse Central Directory Header
+ClassMethod getCDH(bin, sig, madever, extrver, flag, meth, ftime, fdate, crc, zipsize, size, fnlen, extralen, fclen, dns, ifa, efa, rolh)
+{
+ 
+ set sig=$E(bin,1,4)
+ set madever=$ZWA(bin,5)
+ set extrver=$ZWA(bin,7)
+ set flag=$E(bin,9,10)
+ set meth=$E(bin,11,12)
+ set ftime=$E(bin,13,14)
+ set fdate=$E(bin,15,16)
+ set crc=$E(bin,17,20)
+ set zipsize=$ZLA($E(bin,21,24))
+ set size=$ZLA($E(bin,25,28))
+ set fnlen=$ZWA($E(bin,29,30))
+ set extralen=$ZWA($E(bin,31,32))
+ set fclen=$ZWA($E(bin,33,34))
+ set dns=$ZWA($E(bin,35,36))
+ set ifa=$E(bin,37,38)
+ set efa=$E(bin,39,42)
+ set rolh=$E(bin,43,46)
+ quit
+}
+
+ClassMethod mkCDRfromLFH(cdrbin, lfhbin, lfho = "", ifa = "", efa = "", fcomment = "", zip64)
+{
+  set maxsize=4294967295
+  set maxsizebin=$C(255,255,255,255)
+  set lfhlen=..structlen(..lfhmeta())
+  set cdrlen=..structlen(..cdrmeta())
+  set cdrbin=$TR($J("",cdrlen)," ",$C(0))
+  set $E(cdrbin,1,4)=..cdrsig()
+  set $E(cdrbin,5,6)=$E(lfhbin,5,6)
+  set $E(cdrbin,7,8)=$E(lfhbin,5,6)
+  #; flag
+  set $E(cdrbin,9,10)=$E(lfhbin,7,8)
+  #; method
+  set $E(cdrbin,11,12)=$E(lfhbin,9,10)
+  #; time
+  set $E(cdrbin,13,14)=$E(lfhbin,11,12)
+  #; date
+  set $E(cdrbin,15,16)=$E(lfhbin,13,14)
+  #; crc
+  set $E(cdrbin,17,20)=$E(lfhbin,15,18)
+  #; compressed size
+  set zipsize=$E(lfhbin,19,22)
+  set $E(cdrbin,21,24)=zipsize
+  if zipsize=maxsizebin { set zip64=1 } 
+  else { set zip64=0 }
+  #; uncompressed size
+  set size=$E(lfhbin,23,26)
+  if size=maxsizebin ||(zip64=1) { set zip64=1 } 
+  else { set zip64=0  }  
+  set $E(cdrbin,25,28)=$E(lfhbin,23,26)
+  #; filename len
+  set fnlen=$E(lfhbin,27,28)
+  set $E(cdrbin,29,30)=fnlen
+  set fnlen=$ZWA(fnlen)
+  #; extra len
+  set extralen=$E(lfhbin,29,30)
+  set $E(cdrbin,31,32)=extralen
+  set extralen=$ZWA(extralen)
+  if lfho'="" {
+    if lfho>maxsize { set zip64=1 }
+    else { set $E(cdrbin,43,46)=$ZLC(lfho) }
+  }
+  #; fcomment
+  if fcomment'="" { set $E(bin,33,34)=$ZWC($L(fcomment)) }
+  if zip64 {
+     set extra=$E(lfhbin,lfhlen+fnlen+1,lfhlen+fnlen+extralen)
+     if extra="" {
+        set extra=$C(1,0)_$C(16,0)_$ZQC(size)_$ZQC(zipsize)
+     }      
+     set $E(cdrbin,21,24)=maxsizebin
+     set $E(cdrbin,25,28)=maxsizebin
+     set $E(cdrbin,43,46)=maxsizebin
+     set extra=$E(extra,1,2)_$ZWC($ZWA(extra,3)+8)_$E(extra,##expression(4+1),##expression(4+16))_$ZQC(lfho)
+     set cdrbin=cdrbin_$E(lfhbin,lfhlen+1,lfhlen+fnlen)_extra_fcomment
+     set $E(cdrbin,31,32)=$ZWC($L(extra))
+  }
+  else { 
+    set cdrbin=cdrbin_$E(lfhbin,lfhlen+1,lfhlen+fnlen)_$E(lfhbin,lfhlen+fnlen+1,lfhlen+fnlen+extralen)_fcomment
+  }
+}
+
+ClassMethod dumpCDR(bin)
+{
+ do ..getCDH(bin, .sig, .madever, .extrver, .flag, .meth, .ftime, .fdate, .crc, .zipsize, .size, .fnlen, .extralen, .fclen, .dns, .ifa, .efa, .rolh)
+ W "file comment length",fclen,!
+ quit
+}
+
+/// list file header signature
+ClassMethod lfhsig()
+{
+ quit $zlc($zhex("04034b50"))
+}
+
+/// common directory record signature
+ClassMethod cdrsig()
+{
+ quit $zlc($zhex("02014b50"))
+}
+
+/// end of current directory record signature
+ClassMethod eocdrsig()
+{
+ quit $zlc($zhex("06054b50"))
+}
+
+/// zip64 end of current directory record signature
+ClassMethod zip64eocdrsig()
+{
+ quit $zlc($zhex("06064b50"))
+}
+
+/// zip64 end of current directory locator signature
+ClassMethod zip64eocdlsig()
+{
+ quit $zlc($zhex("07064b50"))
+}
+
+ClassMethod lfhlen()
+{
+  set LFHs=..lfhmeta()
+  set n=$LL(LFHs)
+  set len=0 for i=1:1:n set len=len+$LI($LI(LFHs,i),2) 
+  quit len
+}
+
+/// calculate length of struct basing on metainfo
+ClassMethod structlen(meta)
+{
+  set n=$LL(meta) set len=0 for i=1:1:n { set len=len+$LI($LI(meta,i),2) } quit len
+}
+
+ClassMethod lfhmeta()
+{
+ quit $LB(
+   $LB("local file header signature",4),
+   $LB("version needed to extract",2),
+   $LB("general purpose bit flag",2),
+   $LB("compression method",2),
+   $LB("last mod file time",2),
+   $LB("last mod file date",2),
+   $LB("crc-32",4),
+   $LB("compressed size",4),
+   $LB("uncompressed size",4),
+   $LB("file name length",2),
+   $LB("extra field length",2)
+ )
+}
+
+ClassMethod cdrmeta()
+{
+ quit $LB(
+   $LB("central file header signature",4),
+   $LB("version madeby",2),
+   $LB("version needed to extract",2),
+   $LB("general purpose bit flag",2),
+   $LB("compression method",2),
+   $LB("last mod file time",2),
+   $LB("last mod file date",2),
+   $LB("crc-32",4),
+   $LB("compressed size",4),
+   $LB("uncompressed size",4),
+   $LB("file name length",2),
+   $LB("extra field length",2),
+   $LB("file comment length",2),
+   $LB("disk number start",2),
+   $LB("internal file attributes",2),
+   $LB("external file attributes",4),
+   $LB("relative offset of local header",4)
+ )
+}
+
+ClassMethod eocdrmeta()
+{
+ quit $LB(
+   $LB("end of central dir signature",4),
+   $LB("number of this disk",2),
+   $LB("number of the disk with the start of the central directory",2),   
+   $LB("total number of entries in the central directory on this disk",2),
+   $LB("total number of entries in the central directory",2),
+   $LB("size of the central directory",4),
+   $LB("offset of start of central directory with respect to the starting disk number",4),
+   $LB("zip file comment length",2)
+ )
+}
+
+ClassMethod eocdr64meta()
+{
+ quit $LB(
+   $LB("end of central dir signature",4),
+   $LB("size of zip64 end of central directory record",8),
+   $LB("version made by",2),
+   $LB("version needed to extract",2),
+   $LB("number of this disk",4),
+   $LB("number of the disk with the start of the central directory",4),   
+   $LB("total number of entries in the central directory on this disk",8),
+   $LB("total number of entries in the central directory",8),
+   $LB("size of the central directory",8),
+   $LB("offset of start of central directory with respect to the starting disk number",8)   
+ )
+}
+
+ClassMethod eocdl64meta()
+{
+ quit $LB(
+   $LB("zip64 end of central dir locator signature",4),
+   $LB("number of the disk with the start of the zip64 end of central directory",4),
+   $LB("relative offset of the zip64 end of central directory record",8),
+   $LB("total number of disks",4)
+ )
+}
+
+ClassMethod getEOCDR(bin, sig, zipcommentlen)
+{
+  set sig=$E(bin,1,4)
+  set zipcommentlen=$zwa(bin,20)
+}
+
+/// create end of common directory record
+ClassMethod mkEOCDR(bin, offset = "", size = "", n = "", zipcomment = "")
+{
+  set len=..structlen(..eocdrmeta())
+  set bin=$TR($J("",len)," ",$C(0))
+  set $E(bin,1,4)=..eocdrsig()
+  if n'="" {
+    #; total number of entries on this diks
+    set $E(bin,9,10)=$ZWC(n) 
+    #; total number of entries
+    set $E(bin,11,12)=$ZWC(n) 
+  }   
+  if size'="" set $E(bin,13,16)=$ZLC(size)
+  if offset'="" { set $E(bin,17,20)=$ZLC(offset) }
+  if zipcomment'="" {
+  }
+}
+
+ClassMethod mkEOCDR64(bin, offset = "", size = "", n = "", ext = "")
+{
+  set len=..structlen(..eocdr64meta())
+  set bin=$TR($J("",len)," ",$C(0))
+  set $E(bin,1,4)=..zip64eocdrsig()
+  set $E(bin,##expression(4+1),##expression(4+8))=$ZQC(len-12)
+  set $E(bin,##expression(4+8+1),##expression(4+8+2))=$C(45,0)
+  set $E(bin,##expression(4+8+3),##expression(4+8+4))=$C(45,0)
+  if n'="" {
+    #; total number of entries on this diks
+    set $E(bin,##expression(24+1),##expression(24+8))=$ZQC(n) 
+    #; total number of entries
+    set $E(bin,##expression(32+1),##expression(32+8))=$ZQC(n) 
+  }   
+  if size'="" set $E(bin,##expression(40+1),##expression(40+8))=$ZQC(size)
+  if offset'="" { set $E(bin,##expression(48+1),##expression(48+8))=$ZQC(offset) }
+  if ext'="" {
+  }
+}
+
+ClassMethod mkEOCDL64(bin, oeocdr, disknum = 1)
+{
+  set len=..structlen(..eocdl64meta())  
+  set bin=$TR($J("",len)," ",$C(0))
+  set $E(bin,1,4)=..zip64eocdlsig()
+  set $E(bin,##expression(8+1),##expression(8+8))=$ZQC(oeocdr)
+  set $E(bin,##expression(8+8+1),##expression(8+8+4))=$ZLC(disknum)
+}
+
+/// build maps index to file name for lfs and cdr array
+Method BuildFileIndex()
+{
+ kill ..idxlfhfiles set i="" for { set i=$order(..files(i),1,file) quit:i=""  set ..idxlfhfiles(file)=i }
+ kill ..idxcdrfiles set i="" for { set i=$order(..cdrfiles(i),1,file) quit:i=""  set ..idxcdrfiles(file)=i }
+}
+
+/// minimal gzip header
+ClassMethod gzipminhdr()
+{
+ quit $zlc($zh("088B1F"))_$C(0,0,0,0,0,3)
+}
+
+/// crc is 4 binary bytes
+/// size uncompressed length
+ClassMethod gziptlr(crc, isize)
+{
+  quit crc_$zlc(isize)
+}
+
+ClassMethod dosDateTimeBinToString(date, time)
+{
+  set ndate=$zwa(date) set ntime=$zwa(time)
+  quit (1980+(ndate\512))_"-"_(ndate\32#16)_"-"_(ndate#32)_" "_ (ntime\2048)_":"_(ntime\32#32)_":"_((ntime#32)*2)
+}
+
+/// YYYYMMDDHHMMSS
+ClassMethod dosTSYMDHMStoBin(year, month, day, hour, minute, second)
+{
+  quit $ZWC(year-1980*512+(month*32)+day)_$ZWC(hour*2048+(minute*32)+(second/2))
+}
+
+ClassMethod dosDateYMDtoBin(year, month, day)
+{
+  quit $ZWC(year-1980*512+(month*32)+day)
+}
+
+ClassMethod dosTimeHMStoBin(hour, minute, second)
+{
+ quit $ZWC(hour*2048+(minute*32)+(second/2))
+}
+
+Method %OnNew() As %Status
+{
+  set ..lfhlen=..lfhlen()
+  set ..cdrlen=..structlen(..cdrmeta())
+  set ..eocdr64len=..structlen(..eocdr64meta())
+  set ..eocdl64len=..structlen(..eocdl64meta())
+  set ..gzipminhdrlen=$L(..gzipminhdr())
+  quit $$$OK
+}
+
+}
