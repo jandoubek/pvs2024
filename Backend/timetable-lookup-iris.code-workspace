@@ -1,16 +1,17 @@
 {
 	"folders": [
 		{
-			"path": "../../timetable-lookup-iris"
-		},
-		{
 			"name": "iris:USER",
 			"uri": "isfs://iris:user/"
 		}
 	],
 	"settings": {
 		"objectscript.conn": {
-			"active": true
+			"active": true,
+			"server": "iris",
+			"ns": "USER",
+			"username": "test",
+			"password": "test"
 		}
 	}
 }

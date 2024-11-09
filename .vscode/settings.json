@@ -1,5 +1,7 @@
 {
     "objectscript.conn": {
-        "active": false
+        "active": true,
+        "server": "iris",
+        "ns": "USER"
     }
 }
