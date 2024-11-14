@@ -16,9 +16,10 @@ ClassMethod test()
 	s sys("U","loginName")="007"
 	s sys("C","GUID")=7
 	// $lb(skupinaId,aplId,linkaId,smerId,spojId)
-	k arr d ..nacti(.sys,$lb(9,"",060605,0,51),"",.arr) //w ! zw arr
-	d ..uloz(.sys,$lb(9,"",823130,0,3),"",.arr)
-	k arr d ..nacti(.sys,$lb(9,"",060605,0,51),"",.arr) //w ! zw arr
+	#; k arr d ..nacti(.sys,$lb(9,"",060605,0,51),"",.arr) //w ! zw arr
+	#; d ..uloz(.sys,$lb(9,"",823130,0,3),"",.arr)
+	#; k arr d ..seznam(.sys,$lb(6,"","0230009"),"",.arr) zw arr
+	k arr d ..nacti(.sys,$lb(6,"","0230009",0,3),"",.arr) w ! zw arr k ^jm m ^jm = arr
 }
 
 ClassMethod popis()
@@ -1004,6 +1005,7 @@ ClassMethod seznam(ByRef sys As %String, id As %String, dGlb As %String, ByRef a
 	//neni-li datovy global a je-li zastavkaId, pak nacitam data z databaze
 	i (dGlb="")&(skupinaId) {s dGlb=$name(^[dataDB]JRL(skupinaId,linkaId))}
 	i (dGlb="")&(aplId) {s dGlb=$name(^[dataDB]JRAPL(linkaId,aplId,"arr"))}
+	s ^jm("test")=dGlb
 	f smer="T","Z" {
 		s smerId=0 i smer="Z" s smerId=1 
 		s spojId="" f {

@@ -24,54 +24,54 @@ ClassMethod test()
 
 ClassMethod popis()
 {
-		// arr("DTA",bodId)=val			/zakladni body
-		//
-		// 1 zastavkaId					/ zastávka id/číslo / ND
-		// 2 atribut					/ atributy - $lb(atributId,atributId,...) / LST-T
-		// 3 -					        / nepouzito
-		// 4 nastupiste					/ nástupiště - $lb(nastupisteTam,nastupisteZpet) / LST-T
-		// 5 mhdId 						/ dosah MHD / T
-		// 6 tiskOdrazit				/ odrazit / T
-		// 7 mhdTarifId					/ tarifní pásmo MHD / N
-		// 8 trasaMHD					/ předpis pro tisk trasy MHD tam - $lb(trasaMHDTam,trasaMHDZpet) / LST-B
-		// 9 casMHDTam					/ předpis pro čas u tisk trasy MHD tam - $lb(casMHDTam,casMHDZpet) / LST-N
-		// 10 tarZona					/ tarifní zóna - $lb(tarZonaId,tarZonaId,...) / LST
-		// 11 zakladniTrasaMHD			/ předpis pro tisk základní trasy MHD - $lb(zakladniTrasaMHDTam,zakladniTrasaMHDZpet) LST-B
-		// 12 odbZaTarZona				/ odbav.zař.|tarifní zóna (ME) - $lb(tarZonaId,tarZonaId,...) / LST-T
-		// 13 oznacnik		  			/ označník zastávky tam - $lb(oznacnikIdTam,oznacnikIdZpet)/ LST-N
-		// 14 povelBuseId				/ povel BUSE / T
-		// 15 jedePresPoznME			/ příznak jede přes pro poznámku do odbav.ME / N
-		// 16 DSZonyProUznaniBoduSZME	/ DS zóny pro uznání bodu sys/zon (ME) / N
-		// 17 zonaProUznaniBoduSZME		/ zóna pro uznání bodu sys/zon (ME) / T
-		//
-		// arr("DTA",bodId,"vzdalenost",bodIdDo)=$lb(dta,dta,...)	//vzdalenosti mezi body 
-		//	
-		// 1 vzdalenostTarifni			/ tarifni vzdalenost [m]
-		// 2 vzdalenostPresna			/ presna vzdalenost	 [m]
-		// 3 vzdalenostTarifniProOdbZ	/ tarifno vzdalenost pro odbavovaci zazizeni [m]
-		//
-		// arr("DTA",bodId,"meziBody",bodIdDo,cnt)=$lb(dta,dta,...)	//mezibody
-		//
-		// 1 TYP
-		// 2 DELTAS
-		// 3 IdSA
-		// 4 IdK
-		// 5 IdM
-		// 6 SmerZaK
-		// 7 IdBTI
-		// 8 IdHRI
-		// 9 IdZRJI
-		// 10 ZONYAR  $lb($lb(z1,z2,zn),vzdalenostM),$lb($lb(z1,z2,zn),vzdalenostM),...)
-		// 11 FZALL
-		// 
-		// TYP  1  bod na trase		TYP,DELTAS,IdSA,IdBTI
-		//      2  majak       		TYP,DELTAS,IdSA,IdK,IdM,SmerZaK
-		//      3  hrana       		TYP,DELTAS,IdSA,IdHRI
-		//      4  zpresneni      	TYP,DELTAS,IdSA,IdZRJI
-		//      5  fiktivni zona  	TYP,FZALL + rozpis zon a vzdalenost
-		//
-		// + podle nastaveneho parametru arr("PAR","doplnGPS")=0/1
-		// arr("DTA",bodId,"gps")=$lb($lb(gpsNTam,gpsETam),$lb(gpsNZpet,gpsEZpet))
+	// arr("DTA",bodId)=val			/zakladni body
+	//
+	// 1 zastavkaId					/ zastávka id/číslo / ND
+	// 2 atribut					/ atributy - $lb(atributId,atributId,...) / LST-T
+	// 3 -					        / nepouzito
+	// 4 nastupiste					/ nástupiště - $lb(nastupisteTam,nastupisteZpet) / LST-T
+	// 5 mhdId 						/ dosah MHD / T
+	// 6 tiskOdrazit				/ odrazit / T
+	// 7 mhdTarifId					/ tarifní pásmo MHD / N
+	// 8 trasaMHD					/ předpis pro tisk trasy MHD tam - $lb(trasaMHDTam,trasaMHDZpet) / LST-B
+	// 9 casMHDTam					/ předpis pro čas u tisk trasy MHD tam - $lb(casMHDTam,casMHDZpet) / LST-N
+	// 10 tarZona					/ tarifní zóna - $lb(tarZonaId,tarZonaId,...) / LST
+	// 11 zakladniTrasaMHD			/ předpis pro tisk základní trasy MHD - $lb(zakladniTrasaMHDTam,zakladniTrasaMHDZpet) LST-B
+	// 12 odbZaTarZona				/ odbav.zař.|tarifní zóna (ME) - $lb(tarZonaId,tarZonaId,...) / LST-T
+	// 13 oznacnik		  			/ označník zastávky tam - $lb(oznacnikIdTam,oznacnikIdZpet)/ LST-N
+	// 14 povelBuseId				/ povel BUSE / T
+	// 15 jedePresPoznME			/ příznak jede přes pro poznámku do odbav.ME / N
+	// 16 DSZonyProUznaniBoduSZME	/ DS zóny pro uznání bodu sys/zon (ME) / N
+	// 17 zonaProUznaniBoduSZME		/ zóna pro uznání bodu sys/zon (ME) / T
+	//
+	// arr("DTA",bodId,"vzdalenost",bodIdDo)=$lb(dta,dta,...)	//vzdalenosti mezi body 
+	//	
+	// 1 vzdalenostTarifni			/ tarifni vzdalenost [m]
+	// 2 vzdalenostPresna			/ presna vzdalenost	 [m]
+	// 3 vzdalenostTarifniProOdbZ	/ tarifno vzdalenost pro odbavovaci zazizeni [m]
+	//
+	// arr("DTA",bodId,"meziBody",bodIdDo,cnt)=$lb(dta,dta,...)	//mezibody
+	//
+	// 1 TYP
+	// 2 DELTAS
+	// 3 IdSA
+	// 4 IdK
+	// 5 IdM
+	// 6 SmerZaK
+	// 7 IdBTI
+	// 8 IdHRI
+	// 9 IdZRJI
+	// 10 ZONYAR  $lb($lb(z1,z2,zn),vzdalenostM),$lb($lb(z1,z2,zn),vzdalenostM),...)
+	// 11 FZALL
+	// 
+	// TYP  1  bod na trase		TYP,DELTAS,IdSA,IdBTI
+	//      2  majak       		TYP,DELTAS,IdSA,IdK,IdM,SmerZaK
+	//      3  hrana       		TYP,DELTAS,IdSA,IdHRI
+	//      4  zpresneni      	TYP,DELTAS,IdSA,IdZRJI
+	//      5  fiktivni zona  	TYP,FZALL + rozpis zon a vzdalenost
+	//
+	// + podle nastaveneho parametru arr("PAR","doplnGPS")=0/1
+	// arr("DTA",bodId,"gps")=$lb($lb(gpsNTam,gpsETam),$lb(gpsNZpet,gpsEZpet))
 }
 
 ClassMethod nacti(ByRef sys As %String, id As %String, dGlb As %String, ByRef arr As %String)

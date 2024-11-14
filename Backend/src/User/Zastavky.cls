@@ -1,7 +1,7 @@
 Class User.Zastavky Extends %RegisteredObject
 {
 
-ClassMethod NactiZastavky() As %DynamicObject
+ClassMethod NactiZastavky() As %Library.DynamicObject
 {
     Kill sys
     Set sc = ##class(User.RestApi).GetSys(.sys)
@@ -19,6 +19,7 @@ ClassMethod NactiZastavky() As %DynamicObject
         Set LinkaID = ""
         For {
             Set LinkaID = $ORDER(^JRL(SkupinaLinekId, LinkaID)) Quit:LinkaID=""
+            s ^jm(SkupinaLinekId,LinkaID)=""
 
             Do ##class(ALVA.ISY.ISYLinky.API.LinkyTrasa).nacti(.sys,$LISTBUILD(SkupinaLinekId, "", LinkaID),"",.arr)
 
@@ -29,27 +30,26 @@ ClassMethod NactiZastavky() As %DynamicObject
                 Set BodTrasyInfo = $GET(arr("DTA", BodTrasyID))
                 Set ZastavkaID = $LISTGET(BodTrasyInfo, 1)
 
-                If ZastavkaID '= ""
+                If ZastavkaID = "" continue
+
+                If '$DATA(uniqueIDs(ZastavkaID))
                 {
-                    If '$DATA(uniqueIDs(ZastavkaID))
-                    {
-                        Set ZastavkaInfo=$GET(^JRZ(ZastavkaID))
-                        Set ZastavkaNazev=$PIECE(ZastavkaInfo,",",1)_","_
-                                          $PIECE(ZastavkaInfo,",",2)_","_
-                                          $PIECE(ZastavkaInfo,",",3)
-                        
-                        Do result.%Push({ 
-                            "id": (ZastavkaID),
-                            "label": (ZastavkaNazev)
-                        })
-                    }
+                    Set ZastavkaInfo=$GET(^JRZ(ZastavkaID))
+                    Set ZastavkaNazev=$PIECE(ZastavkaInfo,",",1)_","_
+                                        $PIECE(ZastavkaInfo,",",2)_","_
+                                        $PIECE(ZastavkaInfo,",",3)
+                    
+                    Do result.%Push({ 
+                        "id": (ZastavkaID),
+                        "label": (ZastavkaNazev)
+                    })
 
                     Set uniqueIDs(ZastavkaID)=""
                 }
             }
         }
     }
-
+    
     Return result
 }
 
