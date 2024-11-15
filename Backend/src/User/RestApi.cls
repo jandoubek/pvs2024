@@ -12,9 +12,9 @@ Parameter CHARSET = "utf-8";
 XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
 {
 <Routes>
-        <Route Url="/data" Method="OPTIONS" Call="HandleOptions"/>
-        <Route Url="/data" Method="GET" Call="LoadStations"/>
-    </Routes>
+    <Route Url="/data" Method="OPTIONS" Call="HandleOptions"/>
+    <Route Url="/data" Method="GET" Call="LoadStations"/>
+</Routes>
 }
 
 ClassMethod SetHttpHeaders() As %Status
