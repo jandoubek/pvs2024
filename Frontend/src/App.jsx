@@ -7,6 +7,9 @@ import {
   Box, 
   Typography 
 } from '@mui/material';
+// import { StaticDatePicker } from '@mui/x-date-pickers/StaticDatePicker';
+// import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+// import dayjs from 'dayjs';
 import './App.css';
 
 const API_BASE_URL = 'http://localhost:52773/csp/user';
@@ -18,10 +21,12 @@ const App = () => {
   const [fromStation, setFromStation] = useState(null);
   const [toStation, setToStation] = useState(null);
   const [searchResult, setSearchResult] = useState('');
-
-  React.useEffect(() => {
+  // const [date, setDate] = useState(dayjs()); 
+  // const [time, setTime] = useState(dayjs());
+  
+  useEffect(() => {
     loadStations();
-  }, [])
+  }, []);
 
   const loadStations = async () => {
     setLoading(true);
@@ -35,27 +40,21 @@ const App = () => {
     } finally {
       setLoading(false);
     }
-  }
-
-  // Prozatimní konstanty
-  const locations = [
-    { label: 'Praha' },
-    { label: 'Děčín' },
-    { label: 'Ostrava' }
-  ];
+  };
 
   const handleSearch = () => {
-    if (fromStation && toStation) {
-      setSearchResult(`Hledám spoj z: ${fromStation.label} do: ${toStation.label}`);
+    if (fromStation && toStation && date && time) {
+      setSearchResult(
+        `Hledám spoj z: ${fromStation.label} do: ${toStation.label} dne: ${date.format('YYYY-MM-DD')} v čase: ${time.format('HH:mm')}`
+      );
     } else {
-      setSearchResult('Prosím vyberte místo odjezdu i příjezdu.');
+      setSearchResult('Prosím vyberte místo odjezdu, příjezdu, datum i čas.');
     }
   };
 
   return (
     <Box className="container">
       <Autocomplete
-        // options={locations}
         options={data?.stations || []}
         value={fromStation}
         onChange={(event, newValue) => setFromStation(newValue)}
@@ -64,13 +63,26 @@ const App = () => {
       />
 
       <Autocomplete
-        // options={locations}
         options={data?.stations || []}
         value={toStation}
         onChange={(event, newValue) => setToStation(newValue)}
         renderInput={(params) => <TextField {...params} label="Kam" />}
         className="input-field"
       />
+
+     {/* <StaticDatePicker
+        label="Vyberte datum"
+        value={date}
+        onChange={(newDate) => setDate(newDate)}
+        className="input-field"
+      />
+
+      <TimePicker
+        label="Vyberte čas"
+        value={time}
+        onChange={(newTime) => setTime(newTime)}
+        className="input-field"
+      /> */}
 
       <Button
         variant="contained"
