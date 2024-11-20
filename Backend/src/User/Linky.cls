@@ -30,7 +30,7 @@ ClassMethod Test()
         s bodTrasyInfo = $g(arrTrasa("DTA", bodTrasyId))
         s zastavkaId = $lg(bodTrasyInfo, 1) continue:zastavkaId=""
 
-        s ^||linky("zastavky",zastavkaId,6,"0230009")=""
+        s ^||linky("zastavky",zastavkaId,6,"0230009")=bodTrasyId
     }
 
 
@@ -62,7 +62,7 @@ ClassMethod NacistLinky()
     // ^||linky(skupinaId, linkaId,"trasa")                 // body trasy linky
     // ^||linky(skupinaId, linkaId,"spoje")                 // seznam spoju linky
     // ^||linky(skupinaId, linkaId,"spoje",smerId,spojeID)  // detaily spoje linky
-    // ^||linky(zastavkaId,skupinaId,linkaId)=""            // seznam linek obsahujici danou zastavku
+    // ^||linky(zastavkaId,skupinaId,linkaId)=bodTrasyId    // seznam linek obsahujici danou zastavku
     //
 
     Kill sys
@@ -93,7 +93,7 @@ ClassMethod NacistLinky()
                 s bodTrasyInfo = $g(arrTrasa("DTA", bodTrasyId))
                 s zastavkaId = $lg(bodTrasyInfo, 1) continue:zastavkaId=""
 
-                s ^||linky("zastavky",zastavkaId,skupinaId,linkaId)=""
+                s ^||linky("zastavky",zastavkaId,skupinaId,linkaId)=bodTrasyId
             }
 
             // Nacti seznam spoju linky
@@ -114,6 +114,43 @@ ClassMethod NacistLinky()
     }
 
     k ^jm m ^jm = ^||linky
+}
+
+ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String, hrl As %String)
+{
+    // Nacti data do globalu
+    #; d ##class(User.Linky).NacistLinky()
+    d ##class(User.Linky).Test()
+
+    #; d ##class(User.Linky).NajdiSpojeBezPrestupu(644,15060,"")
+    #; d ##class(User.Linky).NajdiSpojeBezPrestupu(15060,644,"")
+
+    k arrZastavky1 m arrZastavky1=^||linky("zastavky",zastavka1Id)
+    k arrZastavky2 m arrZastavky2=^||linky("zastavky",zastavka2Id)
+
+    k ^jmTest 
+    m ^jmTest("zastavky1")=arrZastavky1
+    m ^jmTest("zastavky2")=arrZastavky2
+
+    s bod1 = $g(^||linky("zastavky",zastavka1Id,6,"0230009"))
+    s bod2 = $g(^||linky("zastavky",zastavka2Id,6,"0230009"))
+
+    s smerId = $s(bod1 < bod2: 0,
+                  bod1 > bod2: 1)
+
+    k resultSpoje
+
+    s spojId=""
+    f {
+        s spojId=$o(^||linky(6,"0230009","spoje","DTA",smerId,spojId)) q:spojId=""
+
+        s projizdiBod1 = $d(^||linky(6,"0230009","spoje","DTA",smerId,spojId,"DTA","trasa",bod1))
+        s projizdiBod2 = $d(^||linky(6,"0230009","spoje","DTA",smerId,spojId,"DTA","trasa",bod2))
+
+        i projizdiBod1 && projizdiBod2 s resultSpoje(6,"0230009",spojId)=""
+    }
+
+    m ^jmTest("result")=resultSpoje
 }
 
 }
