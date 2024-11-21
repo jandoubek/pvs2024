@@ -116,14 +116,14 @@ ClassMethod NacistLinky()
     k ^jm m ^jm = ^||linky
 }
 
-ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String, hrl As %String)
+ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String, min As %String)
 {
     // Nacti data do globalu
     #; d ##class(User.Linky).NacistLinky()
     d ##class(User.Linky).Test()
 
-    #; d ##class(User.Linky).NajdiSpojeBezPrestupu(644,15060,"")
-    #; d ##class(User.Linky).NajdiSpojeBezPrestupu(15060,644,"")
+    #; d ##class(User.Linky).NajdiSpojeBezPrestupu(644,15060,600)
+    #; d ##class(User.Linky).NajdiSpojeBezPrestupu(15060,644,600)
 
     k arrZastavky1 m arrZastavky1=^||linky("zastavky",zastavka1Id)
     k arrZastavky2 m arrZastavky2=^||linky("zastavky",zastavka2Id)
@@ -147,7 +147,9 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
         s projizdiBod1 = $d(^||linky(6,"0230009","spoje","DTA",smerId,spojId,"DTA","trasa",bod1))
         s projizdiBod2 = $d(^||linky(6,"0230009","spoje","DTA",smerId,spojId,"DTA","trasa",bod2))
 
-        i projizdiBod1 && projizdiBod2 s resultSpoje(6,"0230009",spojId)=""
+        s isValidVyjezd = $lg($g(^||linky(6,"0230009","spoje","DTA",smerId,spojId,"DTA","trasa",bod1)),1) > min
+
+        i projizdiBod1 && projizdiBod2 && isValidVyjezd s resultSpoje(6,"0230009",spojId)=""
     }
 
     m ^jmTest("result")=resultSpoje

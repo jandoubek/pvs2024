@@ -74,4 +74,8 @@ ClassMethod LoadStations() As %Status
     Quit $$$OK
 }
 
+ClassMethod FindTrips() As %Status
+{
+}
+
 }
