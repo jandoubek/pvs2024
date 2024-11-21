@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
-  Autocomplete,
-  TextField,
   Button,
   Box,
   Typography,
   IconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs from "dayjs";
 import "./App.css";
+
+import StationSelector from "./components/StationSelector";
 
 const API_BASE_URL = "http://localhost:52773/csp/user";
 
@@ -84,32 +83,13 @@ const App = () => {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Autocomplete
-            options={data?.stations || []}
-            value={fromStation}
-            onChange={(event, newValue) => setFromStation(newValue)}
-            renderInput={(params) => <TextField {...params} label="Odkud" />}
-            sx={{ flexGrow: 1, width: '200px' }}
-                      />
-
-          <IconButton
-            onClick={handleSwapStations}
-            color="primary"
-            aria-label="swap stations"
-            sx={{
-              border: "1px solid rgba(0, 0, 0, 0.2)",
-              backgroundColor: "#fff",
-            }}
-          >
-            <SwapHorizIcon />
-          </IconButton>
-
-          <Autocomplete
-            options={data?.stations || []}
-            value={toStation}
-            onChange={(event, newValue) => setToStation(newValue)}
-            renderInput={(params) => <TextField {...params} label="Kam" />}
-            sx={{ flexGrow: 1, width: '200px' }}
+          <StationSelector
+            fromStation={fromStation}
+            toStation={toStation}
+            onFromStationChange={(e, newValue) => setFromStation(newValue)}
+            onToStationChange={(e, newValue) => setToStation(newValue)}
+            onSwapStations={handleSwapStations}
+            stations={data?.stations || []}
           />
         </Box>
 
