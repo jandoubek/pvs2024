@@ -7,7 +7,21 @@ const StationSelect = ({ label, value, onChange, options }) => {
       value={value}
       onChange={onChange}
       renderInput={(params) => <TextField {...params} label={label} />}
-      sx={{ flexGrow: 1, width: '200px' }}
+      ListboxProps={{
+        sx: { maxHeight: '200px' }
+      }}
+      filterOptions={(options, state) => {
+        if (state.inputValue.length < 2) {
+          return [];
+        }
+        
+        const filtered = options.filter(option => 
+          option.label.toLowerCase().includes(state.inputValue.toLowerCase())
+        );
+        return filtered.slice(0, 5);
+      }}
+      sx={{ width: '100%' }}
+      loadingText="Vyhledávám..."
     />
   );
 };

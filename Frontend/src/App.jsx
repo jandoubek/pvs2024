@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 import "./App.css";
 
 import StationSelector from "./components/StationSelector";
+import TripResults from "./components/TripResults";
 
 const API_BASE_URL = "http://localhost:52773/csp/user";
 
@@ -26,6 +27,7 @@ const App = () => {
   const [dateTime, setDateTime] = useState(dayjs());
   const [searchResult, setSearchResult] = useState("");
   const [showInfoBox, setShowInfoBox] = useState(false);
+  const [trips, setTrips] = useState(null);
 
   useEffect(() => {
     loadStations();
@@ -35,7 +37,7 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/data`);
+      const response = await axios.get(`${API_BASE_URL}/stations`);
       setData(response.data);
     } catch (err) {
       setError(err.response?.data?.error || "Error fetching data from the API");
@@ -45,14 +47,34 @@ const App = () => {
     }
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (fromStation && toStation && dateTime) {
       setSearchResult(
         `Hledám spoj z: ${fromStation.label} do: ${toStation.label} dne: ${dateTime.format(
           "DD.MM.YYYY"
         )} v čase: ${dateTime.format("HH:mm")}`
       );
-      setShowInfoBox(true);
+      // setShowInfoBox(true);
+      
+      try {
+        const params = {
+          fromStation: fromStation.id,
+          toStation: toStation.id,
+          dateTime: dateTime.format("YYYY-MM-DD HH:mm:ss")
+        };
+        
+        const response = await axios.get(`${API_BASE_URL}/trips`, {
+          params,
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        setTrips(response.data);
+      } catch(err) {
+        console.error("API Error:", err.response?.data || err.message);
+      }
     } else {
       setSearchResult("Prosím vyberte místo odjezdu, příjezdu a čas odjezdu.");
     }
@@ -77,35 +99,36 @@ const App = () => {
           display: "flex",
           flexDirection: "column",
           gap: 2,
-          maxWidth: 600,
+          maxWidth: 400,
+          width: '100%',
           margin: "auto",
           padding: 2,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <StationSelector
-            fromStation={fromStation}
-            toStation={toStation}
-            onFromStationChange={(e, newValue) => setFromStation(newValue)}
-            onToStationChange={(e, newValue) => setToStation(newValue)}
-            onSwapStations={handleSwapStations}
-            stations={data?.stations || []}
-          />
-        </Box>
+        {/* Removed the extra Box wrapper */}
+        <StationSelector
+          fromStation={fromStation}
+          toStation={toStation}
+          onFromStationChange={(e, newValue) => setFromStation(newValue)}
+          onToStationChange={(e, newValue) => setToStation(newValue)}
+          onSwapStations={handleSwapStations}
+          stations={data?.stations || []}
+        />
 
         <DateTimePicker
           label="Vyberte datum a čas odjezdu"
           value={dateTime}
           onChange={(newDateTime) => setDateTime(newDateTime)}
-          ampm={false} // 24 format
+          ampm={false}
           format="DD.MM.YYYY HH:mm"
+          sx={{ width: '100%' }}
         />
 
         <Button
           variant="contained"
           color="primary"
           onClick={handleSearch}
-          sx={{ mt: 2 }}
+          fullWidth
         >
           Hledat
         </Button>
@@ -121,6 +144,7 @@ const App = () => {
             <Typography variant="body1">{searchResult}</Typography>
           </div>
         )}
+        {trips && <TripResults trips={trips} />}
       </Box>
     </LocalizationProvider>
   );

@@ -1,5 +1,5 @@
 import { Box, IconButton } from '@mui/material';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
 import StationSelect from './StationSelect';
 
 const StationSelector = ({ 
@@ -11,12 +11,21 @@ const StationSelector = ({
   stations 
 }) => {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        gap: 1,
+        width: '100%'
+      }}
+    >
       <StationSelect
         label="Odkud"
         value={fromStation}
         onChange={onFromStationChange}
         options={stations}
+        sx={{ width: '100%' }}
       />
       <IconButton
         onClick={onSwapStations}
@@ -25,15 +34,20 @@ const StationSelector = ({
         sx={{
           border: '1px solid rgba(0, 0, 0, 0.2)',
           backgroundColor: '#fff',
+          my: 1,
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)'
+          }
         }}
       >
-        <SwapHorizIcon />
+        <SwapVertIcon />
       </IconButton>
       <StationSelect
         label="Kam"
         value={toStation}
         onChange={onToStationChange}
         options={stations}
+        sx={{ width: '100%' }}
       />
     </Box>
   );
