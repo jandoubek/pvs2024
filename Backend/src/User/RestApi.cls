@@ -13,18 +13,24 @@ XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
 {
 <Routes>
     <Route Url="/data" Method="OPTIONS" Call="HandleOptions"/>
-    <Route Url="/data" Method="GET" Call="LoadStations"/>
+    <Route Url="/stations" Method="GET" Call="LoadStations"/>
+    <Route Url="/trips" Method="GET" Call="FindTrips"/>
 </Routes>
 }
 
 ClassMethod SetHttpHeaders() As %Status
 {
-    Set origin = $Get(%request.CgiEnvs("HTTP_ORIGIN"))
+    #; Set origin = $Get(%request.CgiEnvs("HTTP_ORIGIN"))
+    #; Do %response.SetHeader("Access-Control-Allow-Origin", "http://localhost:5173")
+    #; Do %response.SetHeader("Access-Control-Allow-Credentials", "true")
+    #; Do %response.SetHeader("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
+    #; Do %response.SetHeader("Access-Control-Max-Age","10000")
+    #; Do %response.SetHeader("Access-Control-Allow-Headers","Content-Type, Authorization, Accept-Language, X-Requested-With")
     Do %response.SetHeader("Access-Control-Allow-Origin", "http://localhost:5173")
     Do %response.SetHeader("Access-Control-Allow-Credentials", "true")
     Do %response.SetHeader("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
-    Do %response.SetHeader("Access-Control-Max-Age","10000")
-    Do %response.SetHeader("Access-Control-Allow-Headers","Content-Type, Authorization, Accept-Language, X-Requested-With")
+    Do %response.SetHeader("Access-Control-Max-Age", "10000")
+    Do %response.SetHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept-Language, X-Requested-With")
     
     Quit $$$OK
 }
@@ -76,6 +82,40 @@ ClassMethod LoadStations() As %Status
 
 ClassMethod FindTrips() As %Status
 {
+    #dim %response As %CSP.Response
+    #dim %request As %CSP.Request
+    
+    // Get parameters from the request URL
+    Set fromStation = %request.Get("fromStation")
+    Set toStation = %request.Get("toStation")
+    Set dateTime = %request.Get("dateTime")
+
+    // Validate parameters
+    If (fromStation = "") || (toStation = "") || (dateTime = "") {
+        Set response = {}
+        Set response.status = "error"
+        Set response.message = "Missing required parameters"
+        Write response.%ToJSON()
+        Quit $$$OK
+    }
+    
+    Set response = {}
+    Set response.trips = []
+    
+    Try {
+        Set trips = ##class(User.Linky).NajdiSpojeBezPrestupu(fromStation, toStation, dateTime)
+        
+        Set response.status = "success"
+        Set response.trips = trips
+        
+    } Catch ex {
+        Set response.status = "error"
+        Set response.message = ex.DisplayString()
+    }
+    
+    Write response.%ToJSON()
+    
+    Quit $$$OK
 }
 
 }
