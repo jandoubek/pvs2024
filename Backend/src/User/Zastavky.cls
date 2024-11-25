@@ -1,6 +1,16 @@
 Class User.Zastavky Extends %RegisteredObject
 {
 
+ClassMethod GetZastavkaName(ZastavkaId As %Integer) As %String
+{
+    ret:ZastavkaId="" "" 
+
+    s ZastavkaInfo = $g(^JRZ(ZastavkaId))
+    s ZastavkaNazev = $p(ZastavkaInfo,"$",2)_" "_$p(ZastavkaInfo,"$",3)
+
+    ret ZastavkaNazev
+}
+
 ClassMethod NactiZastavky() As %Library.DynamicObject
 {
     Kill sys
@@ -19,7 +29,6 @@ ClassMethod NactiZastavky() As %Library.DynamicObject
         Set LinkaID = ""
         For {
             Set LinkaID = $ORDER(^JRL(SkupinaLinekId, LinkaID)) Quit:LinkaID=""
-            s ^jm(SkupinaLinekId,LinkaID)=""
 
             Do ##class(ALVA.ISY.ISYLinky.API.LinkyTrasa).nacti(.sys,$LISTBUILD(SkupinaLinekId, "", LinkaID),"",.arr)
 
@@ -28,16 +37,11 @@ ClassMethod NactiZastavky() As %Library.DynamicObject
                 Set BodTrasyID = $ORDER(arr("DTA", BodTrasyID)) Quit:BodTrasyID=""
 
                 Set BodTrasyInfo = $GET(arr("DTA", BodTrasyID))
-                Set ZastavkaID = $LISTGET(BodTrasyInfo, 1)
-
-                If ZastavkaID = "" continue
+                Set ZastavkaID = $LISTGET(BodTrasyInfo, 1) continue:ZastavkaID=""
 
                 If '$DATA(uniqueIDs(ZastavkaID))
                 {
-                    Set ZastavkaInfo=$GET(^JRZ(ZastavkaID))
-                    Set ZastavkaNazev=$PIECE(ZastavkaInfo,",",1)_","_
-                                        $PIECE(ZastavkaInfo,",",2)_","_
-                                        $PIECE(ZastavkaInfo,",",3)
+                    Set ZastavkaNazev=..GetZastavkaName(ZastavkaID)
                     
                     Do result.%Push({ 
                         "id": (ZastavkaID),
