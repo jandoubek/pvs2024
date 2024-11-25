@@ -1,4 +1,5 @@
 import React from 'react';
+import axios from 'axios';
 import {
   Box,
   Paper,
@@ -83,24 +84,56 @@ const TripDisplay = ({
   );
 };
 
-const TripResults = ({ data }) => {
-  const mockData = {
-    line: "R41",
-    trip: "5521",
-    placeFrom: "Praha hl.n.",
-    placeTo: "Pardubice hl.n.",
-    timeFrom: "2024-11-23T10:30:00",
-    timeTo: "2024-11-23T11:45:00"
-  };
+const TripResults = ({ trips }) => {
+  if (!trips || trips.length === 0) {
+    return (
+      <Typography variant="h6" sx={{ mt: 2 }}>
+        Žádný spoj.
+      </Typography>
+    );
+  }
+
+//const TripResults = ({ data }) => {
+//  const mockData = {
+//    line: "R41",
+//    trip: "5521",
+//    placeFrom: "Praha hl.n.",
+//    placeTo: "Pardubice hl.n.",
+//    timeFrom: "2024-11-23T10:30:00",
+//    timeTo: "2024-11-23T11:45:00"
+//  };
 
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-        Detail spoje
+      Detail spoje
       </Typography>
-      <TripDisplay {...mockData} />
+      {trips && trips.length > 0 ? (
+        trips.map((trip, index) => (
+          <TripDisplay 
+            key={index}
+            line={trip.LinkaID}
+            trip={trip.SpojID}
+            placeFrom={trip.Vyjezd}
+            placeTo={trip.Vjezd}
+            timeFrom={trip.timeFrom}
+            timeTo={trip.timeTo}
+          />
+        ))
+      ) : (
+        <Typography variant="body1">Žádné spoje.</Typography>
+      )}
     </Box>
   );
 };
-
 export default TripResults;
+
+//  return (
+//    <Box sx={{ p: 2 }}>
+//      <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+//        Detail spoje
+//      </Typography>
+//      <TripDisplay {...mockData} />
+//    </Box>
+//  );
+//};

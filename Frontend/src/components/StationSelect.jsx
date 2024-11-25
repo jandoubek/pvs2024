@@ -1,6 +1,7 @@
 import { Autocomplete, TextField } from '@mui/material';
 
 const StationSelect = ({ label, value, onChange, options }) => {
+
   return (
     <Autocomplete
       options={options || []}
@@ -18,7 +19,7 @@ const StationSelect = ({ label, value, onChange, options }) => {
         const filtered = options.filter(option => 
           option.label.toLowerCase().includes(state.inputValue.toLowerCase())
         );
-        return filtered.slice(0, 5);
+        return filtered.slice(0, 5); //omezení počtu navrhovaných zastávek
       }}
       sx={{ width: '100%' }}
       loadingText="Vyhledávám..."
