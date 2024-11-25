@@ -192,13 +192,17 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
                 s SpojId = $o(resultSpoje(SkupinaLinekId, LinkaId, SpojId)) q:SpojId=""
 
                 s SmerId = SpojId+1 # 2
-                s (odjezd,prijezd) = ""
+                s (odjezdMin,prijezdMin) = ""
 
                 s prvniBod = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""))
-                i prvniBod'="" s odjezd = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",prvniBod)),1)
+                i prvniBod'="" s odjezdMin = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",prvniBod)),1)
 
                 s posledniBod = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""),-1)
-                i posledniBod'="" s prijezd = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",posledniBod)),1)
+                i posledniBod'="" s prijezdMin = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",posledniBod)),1)
+
+                // Prevest na hhmm
+                s odjezd = $tr($j(odjezdMin\60,2)_":"_$j(odjezdMin#60,2)," ","0")
+                s prijezd = $tr($j(prijezdMin\60,2)_":"_$j(prijezdMin#60,2)," ","0")
 
                 d result.%Push({
                     "SkupinaLinekId": (SkupinaLinekId),
