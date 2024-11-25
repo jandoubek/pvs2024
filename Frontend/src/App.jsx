@@ -24,7 +24,7 @@ const App = () => {
   const [error, setError] = useState(null);
   const [fromStation, setFromStation] = useState(null);
   const [toStation, setToStation] = useState(null);
-  const [dateTime, setDateTime] = useState(dayjs());
+  const [dateTime, setDateTime] = useState(null);
   const [searchResult, setSearchResult] = useState("");
   const [showInfoBox, setShowInfoBox] = useState(false);
   const [trips, setTrips] = useState(null);
@@ -100,7 +100,7 @@ const App = () => {
           display: "flex",
           flexDirection: "column",
           gap: 2,
-          maxWidth: 400,
+          maxWidth: 600,
           width: '100%',
           margin: "auto",
           padding: 2,

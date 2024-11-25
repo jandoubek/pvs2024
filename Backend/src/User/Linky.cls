@@ -120,7 +120,7 @@ ClassMethod NacistLinky()
     }
 }
 
-ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String, min As %String) As %Library.DynamicObject
+ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String, dateTime As %String) As %Library.DynamicObject
 {
     #; d ##class(User.Linky).NajdiSpojeBezPrestupu(644,15060,600)
     #; d ##class(User.Linky).NajdiSpojeBezPrestupu(15060,644,600)
@@ -128,7 +128,7 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
     s nazevZastavky1 = ##class(User.Zastavky).GetZastavkaName(zastavka1Id)
     s nazevZastavky2 = ##class(User.Zastavky).GetZastavkaName(zastavka2Id)
 
-    s min = 100 
+    s min = ##class(User.Utils).ISO86012Min(dateTime) 
 
     k arrZastavky1 m arrZastavky1=^JRSearch("zastavky",zastavka1Id)
     k arrZastavky2 m arrZastavky2=^JRSearch("zastavky",zastavka2Id)
@@ -178,9 +178,9 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
         i projizdiBod1 && projizdiBod2 && isValidVyjezd s resultSpoje(SkupinaLinekId,linkaId,spojId)=""
     }
 
-    m ^jmTest("result")=resultSpoje
-
-    s result = []
+    // Vratim spoje serezene podle casu vyjezdy
+    k tempArray
+    
     s SkupinaLinekId = ""
     f {
         s SkupinaLinekId = $o(resultSpoje(SkupinaLinekId)) q:SkupinaLinekId=""
@@ -194,26 +194,71 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
                 s SmerId = SpojId+1 # 2
                 s (odjezdMin,prijezdMin) = ""
 
-                s prvniBod = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""))
+                s prvniBod = ##class(User.Zastavky).GetBodIdTrasy(SkupinaLinekId,LinkaId,zastavka1Id)
                 i prvniBod'="" s odjezdMin = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",prvniBod)),1)
 
-                s posledniBod = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""),-1)
+                s posledniBod = ##class(User.Zastavky).GetBodIdTrasy(SkupinaLinekId,LinkaId,zastavka2Id)
                 i posledniBod'="" s prijezdMin = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",posledniBod)),1)
 
-                // Prevest na hhmm
-                s odjezd = $tr($j(odjezdMin\60,2)_":"_$j(odjezdMin#60,2)," ","0")
-                s prijezd = $tr($j(prijezdMin\60,2)_":"_$j(prijezdMin#60,2)," ","0")
+                s odjezd = ##class(User.Utils).Min2hhmm(odjezdMin)
+                s prijezd = ##class(User.Utils).Min2hhmm(prijezdMin)
 
-                d result.%Push({
+                s trasa = []
+                s bodId = ""
+                f {
+                    s bodId = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",bodId)) q:bodId=""
+                    s bodInfo = $g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",bodId))
+                    s casVBode = ##class(User.Utils).Min2hhmm($lg(bodInfo, 1))
+                    s km = $lg(bodInfo, 3) \ 1000
+                    s placeId = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"trasa","DTA",bodId)),1)
+                    s place = ##class(User.Zastavky).GetZastavkaName(placeId)
+                    i SmerId = 0 s inRoute = (prvniBod <= bodId) && (bodId <= posledniBod)
+                    i SmerId = 1 s inRoute = (prvniBod >= bodId) && (bodId >= posledniBod)
+
+                    d trasa.%Push({
+                        "place": (place),
+                        "time": (casVBode),
+                        "km": (km),
+                        "inRoute": (inRoute)
+                    })
+                }
+
+                s vzdalenostPrvniBod = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",prvniBod)),3) \ 1000
+                s vzdalenostPosledniBod = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",posledniBod)),3) \ 1000
+                s vzdalenost = vzdalenostPosledniBod - vzdalenostPrvniBod
+
+                s dobaJizdy = prijezdMin-odjezdMin
+                i smerId = 0 s pocetZastavek = posledniBod - prvniBod + 1
+                i smerId = 1 s pocetZastavek = prvniBod - posledniBod + 1
+
+                // Store in temporary array with odjezdMin as key
+                // Use $j to pad odjezdMin for proper sorting and add a counter to handle duplicate times
+                s counter = $i(tempArray(odjezdMin))
+                s tempArray(odjezdMin,counter) = {
                     "SkupinaLinekId": (SkupinaLinekId),
                     "LinkaID": (LinkaId),
                     "SpojID": (SpojId),
                     "ZeStanice": (nazevZastavky1),
                     "DoStanice": (nazevZastavky2),
                     "Odjezd": (odjezd),
-                    "Prijezd": (prijezd)
-                })
+                    "Prijezd": (prijezd),
+                    "Trasa": (trasa),
+                    "Vzdalenost": (vzdalenost),
+                    "DobaJizdy": (dobaJizdy),
+                    "PocetZastavek": (pocetZastavek)
+                }
             }
+        }
+    }
+
+    s result = []
+    s odjezdMin = ""
+    f {
+        s odjezdMin = $o(tempArray(odjezdMin)) q:odjezdMin=""
+        s counter = ""
+        f {
+            s counter = $o(tempArray(odjezdMin,counter)) q:counter=""
+            d result.%Push(tempArray(odjezdMin,counter))
         }
     }
 

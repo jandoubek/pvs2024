@@ -6,9 +6,23 @@ ClassMethod GetZastavkaName(ZastavkaId As %Integer) As %String
     ret:ZastavkaId="" "" 
 
     s ZastavkaInfo = $g(^JRZ(ZastavkaId))
-    s ZastavkaNazev = $p(ZastavkaInfo,"$",2)_" "_$p(ZastavkaInfo,"$",3)
+    #; s ZastavkaNazev = $p(ZastavkaInfo,"$",2)_" "_$p(ZastavkaInfo,"$",3)
+    s ZastavkaNazev = $p(ZastavkaInfo,"$",2)
 
     ret ZastavkaNazev
+}
+
+ClassMethod GetBodIdTrasy(SkupinaLinekId As %Integer, LinkaId As %String, ZastavkaId As %Integer) As %Integer
+{
+    s bodId = ""
+    f {
+        s bodId = $o(^JRSearch(SkupinaLinekId,LinkaId,"trasa","DTA",bodId)) q:bodId=""
+        s bodInfo = $g(^JRSearch(SkupinaLinekId,LinkaId,"trasa","DTA",bodId))
+
+        i ZastavkaId = $lg(bodInfo, 1) ret bodId
+    }
+
+    ret ""
 }
 
 ClassMethod NactiZastavky() As %Library.DynamicObject
