@@ -70,6 +70,7 @@ const App = () => {
             'Content-Type': 'application/json',
           }
         });
+        console.log(response.data)
         
         setTrips(response.data);
       } catch(err) {
