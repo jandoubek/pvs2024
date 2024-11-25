@@ -69,6 +69,7 @@ ClassMethod NacistLinky()
     Set sc = ##class(User.RestApi).GetSys(.sys)
 
     k ^||linky
+    k ^JRSearch
 
     s skupinaId = "" 
     f {
@@ -81,10 +82,12 @@ ClassMethod NacistLinky()
             // Nacist linku
             k arr d ##class(ALVA.ISY.ISYLinky.API.Linky).nacti(.sys,$lb(skupinaId,"",linkaId),,.arr)
             m ^||linky(skupinaId,linkaId)=arr
+            m ^JRSearch(skupinaId,linkaId)=arr
             
             // Nacist trasu linky
             k arrTrasa d ##class(ALVA.ISY.ISYLinky.API.LinkyTrasa).nacti(.sys,$lb(skupinaId,"",linkaId),"",.arrTrasa)
             m ^||linky(skupinaId,linkaId,"trasa")=arrTrasa
+            m ^JRSearch(skupinaId,linkaId,"trasa")=arrTrasa
 
             // Pro kazdou zastavku nacte vsechny linky, ktere ji obsahuji
             s bodTrasyId=""
@@ -94,11 +97,13 @@ ClassMethod NacistLinky()
                 s zastavkaId = $lg(bodTrasyInfo, 1) continue:zastavkaId=""
 
                 s ^||linky("zastavky",zastavkaId,skupinaId,linkaId)=bodTrasyId
+                s ^JRSearch("zastavky",zastavkaId,skupinaId,linkaId)=bodTrasyId
             }
 
             // Nacti seznam spoju linky
             k arrSpoje d ##class(ALVA.ISY.ISYLinky.API.LinkySpoje).seznam(.sys,$lb(skupinaId,"",linkaId),"",.arrSpoje) 
             m ^||linky(skupinaId,linkaId,"spoje")=arrSpoje
+            m ^JRSearch(skupinaId,linkaId,"spoje")=arrSpoje
 
             // Nacti detaily spoju
             f smerSpojeId=0:1:1 {
@@ -108,36 +113,52 @@ ClassMethod NacistLinky()
 
                     k arrSpoj d ##class(ALVA.ISY.ISYLinky.API.LinkySpoje).nacti(.sys,$lb(skupinaId,"",linkaId,smerSpojeId,spojId),"",.arrSpoj)
                     m ^||linky(skupinaId,linkaId,"spoje","DTA",smerSpojeId,spojId)=arrSpoj
+                    m ^JRSearch(skupinaId,linkaId,"spoje","DTA",smerSpojeId,spojId)=arrSpoj
                 }
             }
         }
     }
-
-    k ^jm m ^jm = ^||linky
 }
 
 ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String, min As %String) As %Library.DynamicObject
 {
-    // Nacti data do globalu
-    #; d ##class(User.Linky).NacistLinky()
-    d ##class(User.Linky).Test()
-
     #; d ##class(User.Linky).NajdiSpojeBezPrestupu(644,15060,600)
     #; d ##class(User.Linky).NajdiSpojeBezPrestupu(15060,644,600)
 
-    s zastavka1Id = 644
-    s zastavka2Id = 15060
-    s min = 600 
+    s nazevZastavky1 = ##class(User.Zastavky).GetZastavkaName(zastavka1Id)
+    s nazevZastavky2 = ##class(User.Zastavky).GetZastavkaName(zastavka2Id)
 
-    k arrZastavky1 m arrZastavky1=^||linky("zastavky",zastavka1Id)
-    k arrZastavky2 m arrZastavky2=^||linky("zastavky",zastavka2Id)
+    s min = 100 
+
+    k arrZastavky1 m arrZastavky1=^JRSearch("zastavky",zastavka1Id)
+    k arrZastavky2 m arrZastavky2=^JRSearch("zastavky",zastavka2Id)
 
     k ^jmTest 
     m ^jmTest("zastavky1")=arrZastavky1
     m ^jmTest("zastavky2")=arrZastavky2
 
-    s bod1 = $g(^||linky("zastavky",zastavka1Id,6,"0230009"))
-    s bod2 = $g(^||linky("zastavky",zastavka2Id,6,"0230009"))
+    // Najit linky, na kterych jsou obe zastavky
+    k spolecneLinky
+    
+    s SkupinaLinekId = ""
+    f {
+        s SkupinaLinekId = $o(^JRSearch("zastavky",zastavka1Id,SkupinaLinekId)) q:SkupinaLinekId=""
+        
+        s linkaId = ""
+        f {
+            s linkaId = $o(^JRSearch("zastavky",zastavka1Id,SkupinaLinekId,linkaId)) q:linkaId=""
+            
+            i $d(^JRSearch("zastavky",zastavka2Id,SkupinaLinekId,linkaId)) {
+                s spolecneLinky(SkupinaLinekId,linkaId)=""
+            }
+        }
+    }
+
+    s SkupinaLinekId=$o(spolecneLinky("")) ret:SkupinaLinekId="" {}
+    s linkaId = $o(spolecneLinky(SkupinaLinekId,"")) 
+
+    s bod1 = $g(^JRSearch("zastavky",zastavka1Id,SkupinaLinekId,linkaId))
+    s bod2 = $g(^JRSearch("zastavky",zastavka2Id,SkupinaLinekId,linkaId))
 
     s smerId = $s(bod1 < bod2: 0,
                   bod1 > bod2: 1,
@@ -147,14 +168,14 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
 
     s spojId=""
     f {
-        s spojId=$o(^||linky(6,"0230009","spoje","DTA",smerId,spojId)) q:spojId=""
+        s spojId=$o(^JRSearch(SkupinaLinekId,linkaId,"spoje","DTA",smerId,spojId)) q:spojId=""
 
-        s projizdiBod1 = $d(^||linky(6,"0230009","spoje","DTA",smerId,spojId,"DTA","trasa",bod1))
-        s projizdiBod2 = $d(^||linky(6,"0230009","spoje","DTA",smerId,spojId,"DTA","trasa",bod2))
+        s projizdiBod1 = $d(^JRSearch(SkupinaLinekId,linkaId,"spoje","DTA",smerId,spojId,"DTA","trasa",bod1))
+        s projizdiBod2 = $d(^JRSearch(SkupinaLinekId,linkaId,"spoje","DTA",smerId,spojId,"DTA","trasa",bod2))
 
-        s isValidVyjezd = $lg($g(^||linky(6,"0230009","spoje","DTA",smerId,spojId,"DTA","trasa",bod1)),1) > min
+        s isValidVyjezd = $lg($g(^JRSearch(SkupinaLinekId,linkaId,"spoje","DTA",smerId,spojId,"DTA","trasa",bod1)),1) > min
 
-        i projizdiBod1 && projizdiBod2 && isValidVyjezd s resultSpoje(6,"0230009",spojId)=""
+        i projizdiBod1 && projizdiBod2 && isValidVyjezd s resultSpoje(SkupinaLinekId,linkaId,spojId)=""
     }
 
     m ^jmTest("result")=resultSpoje
@@ -171,19 +192,22 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
                 s SpojId = $o(resultSpoje(SkupinaLinekId, LinkaId, SpojId)) q:SpojId=""
 
                 s SmerId = SpojId+1 # 2
-                s (vyjezd,vjezd) = ""
+                s (odjezd,prijezd) = ""
 
-                s prvniBod = $o(^||linky(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""))
-                i prvniBod'="" s vyjezd = $lg($g(^||linky(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",prvniBod)),1)
+                s prvniBod = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""))
+                i prvniBod'="" s odjezd = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",prvniBod)),1)
 
-                s posledniBod = $o(^||linky(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""),-1)
-                i posledniBod'="" s vjezd = $lg($g(^||linky(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",posledniBod)),1)
+                s posledniBod = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""),-1)
+                i posledniBod'="" s prijezd = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",posledniBod)),1)
 
                 d result.%Push({
+                    "SkupinaLinekId": (SkupinaLinekId),
                     "LinkaID": (LinkaId),
                     "SpojID": (SpojId),
-                    "Vyjezd": (vyjezd),
-                    "Vjezd": (vjezd)
+                    "ZeStanice": (nazevZastavky1),
+                    "DoStanice": (nazevZastavky2),
+                    "Odjezd": (odjezd),
+                    "Prijezd": (prijezd)
                 })
             }
         }
