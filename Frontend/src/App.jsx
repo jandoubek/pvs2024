@@ -15,6 +15,7 @@ import "./App.css";
 
 import StationSelector from "./components/StationSelector";
 import TripResults from "./components/TripResults";
+import TripResultTest from "./components/TripResultTest";
 
 const API_BASE_URL = "http://localhost:52773/csp/user";
 
@@ -107,6 +108,7 @@ const App = () => {
         }}
       >
         {/* Removed the extra Box wrapper */}
+        {/* {trips && <TripResultTest routes={trips} />} */}
         <StationSelector
           fromStation={fromStation}
           toStation={toStation}

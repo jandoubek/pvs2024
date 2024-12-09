@@ -21,11 +21,6 @@ XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
 ClassMethod SetHttpHeaders() As %Status
 {
     #; Set origin = $Get(%request.CgiEnvs("HTTP_ORIGIN"))
-    #; Do %response.SetHeader("Access-Control-Allow-Origin", "http://localhost:5173")
-    #; Do %response.SetHeader("Access-Control-Allow-Credentials", "true")
-    #; Do %response.SetHeader("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
-    #; Do %response.SetHeader("Access-Control-Max-Age","10000")
-    #; Do %response.SetHeader("Access-Control-Allow-Headers","Content-Type, Authorization, Accept-Language, X-Requested-With")
     Do %response.SetHeader("Access-Control-Allow-Origin", "http://localhost:5173")
     Do %response.SetHeader("Access-Control-Allow-Credentials", "true")
     Do %response.SetHeader("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
@@ -84,7 +79,7 @@ ClassMethod FindTrips() As %Status
 {
     #dim %response As %CSP.Response
     #dim %request As %CSP.Request
-    
+
     // Get parameters from the request URL
     Set fromStation = %request.Get("fromStation")
     Set toStation = %request.Get("toStation")
@@ -103,7 +98,8 @@ ClassMethod FindTrips() As %Status
     Set response.trips = []
     
     Try {
-        Set trips = ##class(User.Linky).NajdiSpojeBezPrestupu(fromStation, toStation, dateTime)
+        #; Set trips = ##class(User.Linky).NajdiSpojeBezPrestupu(fromStation, toStation, dateTime)
+        Set trips = ##class(User.Linky).NajdiSpojeJedenPrestup(fromStation, toStation, dateTime)
         
         Set response.status = "success"
         Set response.trips = trips
