@@ -87,5 +87,4 @@ RUN iris start IRIS && \
 
 EXPOSE $PORT 51773 53773
 
-# Fixed CMD with correct memory settings through environment variables
-CMD ["iris", "start", "IRIS", "-b", "52773:52773"]
+CMD ["/iris-main", "-b", "52773:52773"]
