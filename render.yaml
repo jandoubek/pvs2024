@@ -3,7 +3,7 @@ services:
     image: intersystems/iris-community:latest
     build:
       context: .
-      dockerfile: Backend/Dockerfile
+      dockerfile: ./Backend/Dockerfile  # Make sure this path exactly matches your directory structure
     env:
       - key: IRIS_PASSWORD
         sync: false
@@ -23,6 +23,8 @@ services:
     buildCommand: |
       # Build frontend
       cd Frontend && npm install && npm run build
+      # Create the csp directory if it doesn't exist
+      mkdir -p Backend/csp
       # Copy frontend build to a directory that will be served by IRIS
-      cp -r build/* ../Backend/csp/
+      cp -r Frontend/build/* Backend/csp/
     startCommand: iris start IRIS

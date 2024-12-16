@@ -1,3 +1,4 @@
+# File: Backend/Dockerfile
 FROM intersystems/iris-community:latest
 
 # Set working directory
@@ -8,9 +9,6 @@ COPY Backend/ .
 
 # Create directory for frontend files
 RUN mkdir -p csp/
-
-# Copy frontend build files (will be copied during build process)
-COPY Frontend/build/ csp/
 
 # Set permissions
 USER root
