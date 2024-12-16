@@ -65,7 +65,7 @@ RUN apt-get update && apt-get install -y \
 COPY Frontend/ Frontend/
 WORKDIR /opt/irisapp/Frontend
 
-# Install MUI dependencies before building
+# Install dependencies and build
 RUN npm install @mui/material @mui/lab @emotion/react @emotion/styled && \
     npm install && \
     npm run build
@@ -74,7 +74,7 @@ RUN npm install @mui/material @mui/lab @emotion/react @emotion/styled && \
 WORKDIR /opt/irisapp
 COPY Backend/ Backend/
 RUN mkdir -p Backend/csp && \
-    cp -r Frontend/build/* Backend/csp/ && \
+    cp -r Frontend/dist/* Backend/csp/ && \
     chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
 
 COPY globals/ globals/
