@@ -49,7 +49,6 @@ FROM intersystemsdc/iris-community:latest
 USER root   
 WORKDIR /opt/irisapp
 
-# Add IRIS memory configuration
 ENV ISC_DATA_DIRECTORY=/opt/irisapp/data
 ENV IRIS_GLOBAL_BUFFERS=64
 ENV IRIS_ROUTINE_BUFFERS=64
@@ -78,9 +77,7 @@ USER ${ISC_PACKAGE_MGRUSER}
 
 EXPOSE 51773 52773 53773
 
-# Configure IRIS with limited memory
-RUN iris start IRIS SystemMode && \
-    iris session IRIS "##class(Config.config).Create()" && \
+RUN iris start IRIS && \
     iris session IRIS "##class(%EnsembleMgr).EnableNamespace(\"USER\")" && \
     iris session IRIS "##class(%CSP.Application).CreateApplication(\"/\",\"/opt/irisapp/Backend/csp\")" && \
     iris stop IRIS quietly
