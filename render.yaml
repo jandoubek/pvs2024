@@ -3,7 +3,7 @@ services:
     image: intersystems/iris-community:latest
     build:
       context: .
-      dockerfile: ./Backend/Dockerfile  # Make sure this path exactly matches your directory structure
+      dockerfile: Dockerfile  # Now points to root Dockerfile
     env:
       - key: IRIS_PASSWORD
         sync: false
@@ -20,11 +20,4 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    buildCommand: |
-      # Build frontend
-      cd Frontend && npm install && npm run build
-      # Create the csp directory if it doesn't exist
-      mkdir -p Backend/csp
-      # Copy frontend build to a directory that will be served by IRIS
-      cp -r Frontend/build/* Backend/csp/
     startCommand: iris start IRIS
