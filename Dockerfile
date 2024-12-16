@@ -55,7 +55,8 @@ ENV IRIS_ROUTINE_BUFFERS=64
 ENV IRIS_MEMORY_HEAP_SIZE=256
 ENV IRIS_MAX_SERVERS=2
 ENV IRIS_MAX_USER_CONNECTIONS=10
-ENV PORT=52773
+ENV PORT=$PORT
+
 
 RUN apt-get update && apt-get install -y \
     curl \
@@ -85,6 +86,6 @@ RUN iris start IRIS && \
     iris session IRIS "##class(%REST.API).CreateApplication(\"rest\",\"/opt/irisapp/Backend/csp\")" && \
     iris stop IRIS quietly
 
-EXPOSE 51773 52773
+EXPOSE $PORT
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
