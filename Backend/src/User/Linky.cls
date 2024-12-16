@@ -150,11 +150,17 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
                 s prijezd = ##class(User.Utils).Min2hhmm(prijezdMin)
 
                 s trasa = []
+                s prvniBodId = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",""))
+                s druhyBodId = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",prvniBodId))
+                s prvniCas = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",prvniBodId)), 1)
+                s druhyCas = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",druhyBodId)), 1)
+                s smerProchazeni=1 i prvniCas > druhyCas s smerProchazeni = -1
                 s bodId = ""
                 f {
-                    s bodId = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",bodId)) q:bodId=""
+                    s bodId = $o(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",bodId), smerProchazeni) q:bodId=""
                     s bodInfo = $g(^JRSearch(SkupinaLinekId,LinkaId,"spoje","DTA",SmerId,SpojId,"DTA","trasa",bodId))
-                    s casVBode = ##class(User.Utils).Min2hhmm($lg(bodInfo, 1))
+                    s min = $lg(bodInfo, 1)
+                    s casVBode = ##class(User.Utils).Min2hhmm(min)
                     s km = $lg(bodInfo, 3) \ 1000
                     s placeId = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"trasa","DTA",bodId)),1)
                     s place = ##class(User.Zastavky).GetZastavkaName(placeId)
@@ -193,6 +199,7 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
                         "Odjezd": (odjezd),
                         "Prijezd": (prijezd),
                         "LinkaID": (LinkaId),
+                        "SpojID": (SpojId),
                         "SkupinaLinekId": (SkupinaLinekId),
                         "SpojID": (SpojId),
                         "Vzdalenost": (vzdalenost),
@@ -332,7 +339,7 @@ ClassMethod NajdiSpojeJedenPrestup(zastavka1Id As %String, zastavka2Id As %Strin
                     
                     // Create combined route using the new structure
                     s combinedRoute = {
-                        "Datum": (dateCzechFormat),
+                        #; "Datum": (dateCzechFormat),
                         "ZeStanice": (firstLeg.ZeStanice),
                         "DoStanice": (bestSecondLeg.DoStanice),
                         "Odjezd": (firstLeg.Odjezd),
