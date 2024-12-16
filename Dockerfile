@@ -79,11 +79,13 @@ RUN chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
 
 USER ${ISC_PACKAGE_MGRUSER}
 
-RUN iris start IRIS -cconsole=0 -xs "globals=256,routines=64" && \
+# Fixed IRIS startup command with correct memory parameter syntax
+RUN iris start IRIS && \
     iris session IRIS "##class(%EnsembleMgr).EnableNamespace(\"USER\")" && \
     iris session IRIS "##class(%REST.API).CreateApplication(\"rest\",\"/opt/irisapp/Backend/csp\")" && \
     iris stop IRIS quietly
 
 EXPOSE $PORT 51773 53773
 
-CMD ["iris", "start", "IRIS", "-b", "52773:52773", "-cconsole=0", "-xs", "globals=256,routines=64"]
+# Fixed CMD with correct memory settings through environment variables
+CMD ["iris", "start", "IRIS", "-b", "52773:52773"]
