@@ -16,12 +16,10 @@ const ResultsPage = () => {
   const { trips: initialTrips, searchParams } = location.state || {};
 
   
-  // State to keep track of all loaded trips
   const [allTrips, setAllTrips] = useState(initialTrips?.trips || []);
   const [loading, setLoading] = useState(false);
   console.log(allTrips);
 
-  // Helper function to get next day's date in Czech format
   const getNextDayDate = (dateStr) => {
     const parts = dateStr.split('.');
     const date = new Date(parts[2], parts[1] - 1, parts[0]);
@@ -32,18 +30,15 @@ const ResultsPage = () => {
   const handleLoadMore = async () => {
     setLoading(true);
     
-    // Get the last trip's date
     const lastTripDate = allTrips[allTrips.length - 1].Datum;
     const nextDate = getNextDayDate(lastTripDate);
 
     try {
-      // Simulate API call - replace this with your actual API call
       const nextDayTrips = allTrips.map(trip => ({
         ...trip,
         Datum: nextDate
       }));
 
-      // Add new trips to existing ones
       setAllTrips(prevTrips => [...prevTrips, ...nextDayTrips]);
     } catch (error) {
       console.error("Failed to load more trips:", error);

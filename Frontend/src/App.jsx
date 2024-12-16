@@ -1,17 +1,30 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import SearchForm from "./components/SearchForm";
 import ResultsPage from "./components/ResultsPage";
-import { Box } from "@mui/material";
+import Header from "./components/Header";
+import { Box, Container } from "@mui/material";
 
 const App = () => {
   return (
     <Router>
-      <Box sx={{ maxWidth: 1200, margin: "auto", padding: 2 }}>
-        <Routes>
-          <Route path="/" element={<SearchForm />} />
-          <Route path="/results" element={<ResultsPage />} />
-        </Routes>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <Header />
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            pt: { xs: 8, sm: 9 }, // Add padding top to account for fixed AppBar
+            overflow: 'auto'
+          }}
+        >
+          <Container sx={{ maxWidth: 1200, height: '100%' }}>
+            <Routes>
+              <Route path="/" element={<SearchForm />} />
+              <Route path="/results" element={<ResultsPage />} />
+            </Routes>
+          </Container>
+        </Box>
       </Box>
     </Router>
   );
