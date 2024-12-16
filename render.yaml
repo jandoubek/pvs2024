@@ -1,9 +1,9 @@
 services:
   web:
-    image: intersystems/iris-community:latest
+    image: containers.intersystems.com/intersystems/iris-community:latest
     build:
       context: .
-      dockerfile: Dockerfile  # Now points to root Dockerfile
+      dockerfile: Dockerfile
     env:
       - key: IRIS_PASSWORD
         sync: false

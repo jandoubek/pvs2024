@@ -1,5 +1,5 @@
 # Start with the IRIS Community image
-FROM intersystems/iris-community:latest
+FROM containers.intersystems.com/intersystems/iris-community:latest
 
 # Set working directory
 WORKDIR /opt/irisapp
