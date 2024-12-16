@@ -49,7 +49,7 @@
 # # Start IRIS
 # CMD [ "iris", "start", "IRIS" ]
 
-FROM intersystemsdc/iris-community:latest as builder
+FROM intersystemsdc/iris-community:latest
 
 USER root   
 WORKDIR /opt/irisapp
@@ -64,7 +64,11 @@ RUN apt-get update && apt-get install -y \
 # Copy and build frontend
 COPY Frontend/ Frontend/
 WORKDIR /opt/irisapp/Frontend
-RUN npm install && npm run build
+
+# Install MUI dependencies before building
+RUN npm install @mui/material @mui/lab @emotion/react @emotion/styled && \
+    npm install && \
+    npm run build
 
 # Setup backend
 WORKDIR /opt/irisapp
@@ -73,12 +77,10 @@ RUN mkdir -p Backend/csp && \
     cp -r Frontend/build/* Backend/csp/ && \
     chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
 
-# Copy globals
 COPY globals/ globals/
 
 USER ${ISC_PACKAGE_MGRUSER}
 
-# Configure IRIS
 RUN iris start IRIS \
     && iris session IRIS "##class(%EnsembleMgr).EnableNamespace(\"USER\")" \
     && iris session IRIS "##class(%CSP.Portal).CreateApplication(\"/\",\"/opt/irisapp/Backend/csp\")" \
