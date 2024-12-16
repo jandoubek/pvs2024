@@ -46,12 +46,16 @@
 
 FROM intersystemsdc/iris-community:latest
 
-USER root   
+USER root
 WORKDIR /opt/irisapp
 
 ENV ISC_DATA_DIRECTORY=/opt/irisapp/data
-ENV IRIS_GLOBAL_BUFFERS=64
+ENV IRIS_GLOBAL_BUFFERS=256
 ENV IRIS_ROUTINE_BUFFERS=64
+ENV IRIS_MEMORY_HEAP_SIZE=256
+ENV IRIS_MAX_SERVERS=2
+ENV IRIS_MAX_USER_CONNECTIONS=10
+ENV PORT=52773
 
 RUN apt-get update && apt-get install -y \
     curl \
@@ -75,11 +79,11 @@ RUN chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
 
 USER ${ISC_PACKAGE_MGRUSER}
 
-EXPOSE 51773 52773 53773
-
-RUN iris start IRIS && \
+RUN iris start IRIS -cconsole=0 -xs "globals=256,routines=64" && \
     iris session IRIS "##class(%EnsembleMgr).EnableNamespace(\"USER\")" && \
-    iris session IRIS "##class(%CSP.Application).CreateApplication(\"/\",\"/opt/irisapp/Backend/csp\")" && \
+    iris session IRIS "##class(%REST.API).CreateApplication(\"rest\",\"/opt/irisapp/Backend/csp\")" && \
     iris stop IRIS quietly
 
-ENTRYPOINT ["iris", "start", "IRIS"]
+EXPOSE $PORT 51773 53773
+
+CMD ["iris", "start", "IRIS", "-b", "52773:52773", "-cconsole=0", "-xs", "globals=256,routines=64"]
