@@ -49,14 +49,15 @@ FROM intersystemsdc/iris-community:latest
 USER root
 WORKDIR /opt/irisapp
 
+# Keep your original memory settings
 ENV ISC_DATA_DIRECTORY=/opt/irisapp/data
 ENV IRIS_GLOBAL_BUFFERS=256
 ENV IRIS_ROUTINE_BUFFERS=64
 ENV IRIS_MEMORY_HEAP_SIZE=256
 ENV IRIS_MAX_SERVERS=2
 ENV IRIS_MAX_USER_CONNECTIONS=10
-ENV PORT=$PORT
-
+# Add PORT environment variable for Render
+ENV PORT=${PORT:-10000}
 
 RUN apt-get update && apt-get install -y \
     curl \
@@ -78,14 +79,25 @@ RUN mkdir -p Backend/csp && \
 COPY globals/ globals/
 RUN chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
 
+# Create IRIS configuration for port binding
+RUN echo "[Startup]" > iris.ini && \
+    echo "WebServer=1" >> iris.ini && \
+    echo "WebServerPort=${PORT}" >> iris.ini
+
 USER ${ISC_PACKAGE_MGRUSER}
 
-# Fixed IRIS startup command with correct memory parameter syntax
-RUN iris start IRIS && \
+RUN iris start IRIS configfile=/opt/irisapp/iris.ini && \
     iris session IRIS "##class(%EnsembleMgr).EnableNamespace(\"USER\")" && \
     iris session IRIS "##class(%REST.API).CreateApplication(\"rest\",\"/opt/irisapp/Backend/csp\")" && \
     iris stop IRIS quietly
 
-EXPOSE $PORT
+# Only expose the dynamic PORT
+EXPOSE ${PORT}
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Create entrypoint script
+RUN echo '#!/bin/bash' > /opt/irisapp/entrypoint.sh && \
+    echo 'iris start IRIS configfile=/opt/irisapp/iris.ini' >> /opt/irisapp/entrypoint.sh && \
+    echo 'tail -f /dev/null' >> /opt/irisapp/entrypoint.sh && \
+    chmod +x /opt/irisapp/entrypoint.sh
+
+ENTRYPOINT ["/opt/irisapp/entrypoint.sh"]
