@@ -85,6 +85,6 @@ RUN iris start IRIS && \
     iris session IRIS "##class(%REST.API).CreateApplication(\"rest\",\"/opt/irisapp/Backend/csp\")" && \
     iris stop IRIS quietly
 
-EXPOSE $PORT 51773 53773
+EXPOSE 51773 52773
 
-CMD ["/iris-main", "-b", "52773:52773"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
