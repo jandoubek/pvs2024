@@ -1,0 +1,36 @@
+# File: my-iris-react-app/docker-compose.yml
+version: '3.8'
+
+services:
+  iris:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    ports:
+      - "51773:51773"  # SuperServer port
+      - "52773:52773"  # Web server/management portal port
+    volumes:
+      - ./Backend:/opt/irisapp
+      - iris_data:/opt/irisapp/data
+      - ./globals:/opt/irisapp/globals
+    environment:
+      - ISC_DATA_DIRECTORY=/opt/irisapp/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:52773/api/monitor/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - iris
+    environment:
+      - REACT_APP_API_URL=http://localhost:52773
+
+volumes:
+  iris_data:
