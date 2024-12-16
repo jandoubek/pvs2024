@@ -11,59 +11,6 @@ import TimelineSeparator from '@mui/lab/TimelineSeparator';
 import TimelineDot from '@mui/lab/TimelineDot';
 import TimelineConnector from '@mui/lab/TimelineConnector';
 
-// const RouteSegment = ({ segment, color }) => {
-//   if (!segment?.Trasa) return null;
-
-//   return (
-//     <Timeline sx={{ 
-//       padding: 0,
-//       [`& .MuiTimelineItem-root`]: {
-//         minHeight: 'auto',
-//         '&:before': {
-//           display: 'none'
-//         }
-//       }
-//     }}>
-//       {segment.Trasa.map((point, index) => (
-//         <TimelineItem key={index}>
-//           <TimelineSeparator>
-//             <TimelineDot 
-//               color={point.isActive ? color : "grey"} 
-//               sx={{ 
-//                 width: '12px', 
-//                 height: '12px', 
-//                 my: 0,
-//                 opacity: point.isActive ? 1 : 0.5
-//               }}
-//             />
-//             {index < segment.Trasa.length - 1 && (
-//               <TimelineConnector sx={{ 
-//                 opacity: point.isActive ? 1 : 0.3
-//               }} />
-//             )}
-//           </TimelineSeparator>
-//           <TimelineContent>
-//             <Stack 
-//               direction="row" 
-//               spacing={2} 
-//               alignItems="baseline"
-//               sx={{ opacity: point.isActive ? 1 : 0.6 }}
-//             >
-//               <Typography variant="body2" sx={{ minWidth: '50px' }}>
-//                 {point.time}
-//               </Typography>
-//               <Typography>{point.place}</Typography>
-//               <Typography variant="caption" color="text.secondary">
-//                 {point.km} km
-//               </Typography>
-//             </Stack>
-//           </TimelineContent>
-//         </TimelineItem>
-//       ))}
-//     </Timeline>
-//   );
-// };
-
 const RouteSegment = ({ segment, color, isExpanded }) => {
   if (!segment?.Trasa) return null;
 
@@ -142,42 +89,51 @@ const TripResult = ({ route }) => {
     second: false
   });
 
+  // Get the route data properly for both direct and transfer routes
   const hasTransfer = !!route.PrestupStanice;
+  
+  // For direct routes, use PrvniUsek data, otherwise use the route data directly
+  const routeData = hasTransfer ? route : route.PrvniUsek;
 
   return (
     <Paper elevation={1} sx={{ p: 3, width: '100%', maxWidth: '800px', mx: 'auto', bgcolor: '#fff' }}>
-      {/* Header and main info remain the same */}
+      {/* Header and main info */}
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
         <DirectionsBusIcon color="primary" />
-        {hasTransfer ? (
-          <>
-            <Chip label={`Linka ${route.PrvniUsek.LinkaID}`} color="primary" variant="outlined" />
-            <CompareArrows sx={{ fontSize: '1rem' }} />
-            <Chip label={`Linka ${route.DruhyUsek.LinkaID}`} color="secondary" variant="outlined" />
-          </>
-        ) : (
-          <Chip label={`Linka ${route.LinkaID}`} color="primary" variant="outlined" />
-        )}
+        <Box>
+          <Typography variant="caption" color="text.secondary" display="block">
+            {route.Datum}
+          </Typography>
+          {hasTransfer ? (
+            <>
+              <Chip label={`Linka ${route.PrvniUsek.LinkaID}`} color="primary" variant="outlined" />
+              <CompareArrows sx={{ fontSize: '1rem' }} />
+              <Chip label={`Linka ${route.DruhyUsek.LinkaID}`} color="secondary" variant="outlined" />
+            </>
+          ) : (
+            <Chip label={`Linka ${routeData.LinkaID}`} color="primary" variant="outlined" />
+          )}
+        </Box>
       </Stack>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 3 }}>
-        {/* Main times and stations section remains the same */}
+        {/* Main times and stations section */}
         <Box>
           <Typography variant="caption" color="text.secondary">Odjezd</Typography>
           <Typography variant="h6" sx={{ mt: 0.5 }}>
-            {route.Odjezd || route.PrvniUsek?.Odjezd}
+            {routeData.Odjezd}
           </Typography>
           <Typography variant="body1" sx={{ mt: 0.5 }}>
-            {route.ZeStanice || route.PrvniUsek?.ZeStanice}
+            {routeData.ZeStanice}
           </Typography>
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary">Příjezd</Typography>
           <Typography variant="h6" sx={{ mt: 0.5 }}>
-            {route.Prijezd || route.DruhyUsek?.Prijezd}
+            {routeData.Prijezd}
           </Typography>
           <Typography variant="body1" sx={{ mt: 0.5 }}>
-            {route.DoStanice}
+            {routeData.DoStanice}
           </Typography>
         </Box>
       </Box>
@@ -201,17 +157,17 @@ const TripResult = ({ route }) => {
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={6}>
                 <Typography variant="caption" color="text.secondary">Vzdálenost</Typography>
-                <Typography variant="body1">{route.CelkovaVzdalenost || 0} km</Typography>
+                <Typography variant="body1">{route.CelkovaVzdalenost} km</Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="caption" color="text.secondary">Doba jízdy</Typography>
-                <Typography variant="body1">{route.CelkovaDobaJizdy || 0} min</Typography>
+                <Typography variant="body1">{route.CelkovaDobaJizdy} min</Typography>
               </Grid>
             </Grid>
 
             {hasTransfer ? (
               <>
-                {/* First segment with its own expand/collapse */}
+                {/* First segment */}
                 <Box>
                   <Stack
                     direction="row"
@@ -234,7 +190,7 @@ const TripResult = ({ route }) => {
                   />
                 </Box>
 
-                {/* Second segment with its own expand/collapse */}
+                {/* Second segment */}
                 <Box>
                   <Stack
                     direction="row"
@@ -274,7 +230,7 @@ const TripResult = ({ route }) => {
                   </IconButton>
                 </Stack>
                 <RouteSegment 
-                  segment={route} 
+                  segment={routeData}  // Use routeData instead of route
                   color="primary" 
                   isExpanded={expandedSegments.first}
                 />

@@ -1,56 +1,6 @@
 Class User.Linky Extends %RegisteredObject
 {
 
-ClassMethod Test()
-{
-    // d ##class(User.Linky).Test()
-
-    Kill sys
-    Set sc = ##class(User.RestApi).GetSys(.sys)
-
-    k ^||linky
-
-    // Nacist linku
-    k arr d ##class(ALVA.ISY.ISYLinky.API.Linky).nacti(.sys,$lb(6,"","0230009"),,.arr)
-    s CisloDleLicence = $lg(arr("DTA"), 1)
-    s CisloIds = $lg(arr("DTA"), 2)
-    s CisloMhd = $lg(arr("DTA"), 3)
-    s NazevLinky = $lg(arr("DTA"), 4)
-    m ^||linky(6,"0230009")=arr
-
-    // Nacist trasu linky
-    k arrTrasa d ##class(ALVA.ISY.ISYLinky.API.LinkyTrasa).nacti(.sys,$lb(6,"","0230009"),"",.arrTrasa)
-    m arr("trasa")=arrTrasa
-    m ^||linky(6,"0230009","trasa")=arrTrasa
-
-    // Pro kazdou zastavku nacte vsechny linky, ktere ji obsahuji
-    s bodTrasyId=""
-    f {
-        s bodTrasyId=$o(arrTrasa("DTA",bodTrasyId)) q:bodTrasyId=""
-        s bodTrasyInfo = $g(arrTrasa("DTA", bodTrasyId))
-        s zastavkaId = $lg(bodTrasyInfo, 1) continue:zastavkaId=""
-
-        s ^||linky("zastavky",zastavkaId,6,"0230009")=bodTrasyId
-    }
-
-
-    // Nacti spoje linky
-    k arrSpoje d ##class(ALVA.ISY.ISYLinky.API.LinkySpoje).seznam(.sys,$lb(6,"","0230009"),"",.arrSpoje) 
-    m arr("spoje")=arrSpoje
-    m ^||linky(6,"0230009","spoje")=arrSpoje
-    f smerSpojeId=0:1:1 {
-        s spojId=""
-        f {
-            s spojId=$o(arrSpoje("DTA",smerSpojeId,spojId)) q:spojId=""
-
-            k arrSpoj d ##class(ALVA.ISY.ISYLinky.API.LinkySpoje).nacti(.sys,$lb(6,"","0230009",smerSpojeId,spojId),"",.arrSpoj)
-            m ^||linky(6,"0230009","spoje","DTA",smerSpojeId,spojId)=arrSpoj
-        }
-    }
-
-    k ^jm m ^jm = ^||linky
-}
-
 ClassMethod NacistLinky()
 {
     //
@@ -133,10 +83,6 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
     k arrZastavky1 m arrZastavky1=^JRSearch("zastavky",zastavka1Id)
     k arrZastavky2 m arrZastavky2=^JRSearch("zastavky",zastavka2Id)
 
-    k ^jmTest 
-    m ^jmTest("zastavky1")=arrZastavky1
-    m ^jmTest("zastavky2")=arrZastavky2
-
     // Najit linky, na kterych jsou obe zastavky
     k spolecneLinky
     
@@ -154,7 +100,7 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
         }
     }
 
-    s SkupinaLinekId=$o(spolecneLinky("")) ret:SkupinaLinekId="" {}
+    s SkupinaLinekId=$o(spolecneLinky("")) ret:SkupinaLinekId="" []
     s linkaId = $o(spolecneLinky(SkupinaLinekId,"")) 
 
     s bod1 = $g(^JRSearch("zastavky",zastavka1Id,SkupinaLinekId,linkaId))
@@ -179,7 +125,7 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
     }
 
     // Vratim spoje serezene podle casu vyjezdy
-    k tempArray
+    s result = []
     
     s SkupinaLinekId = ""
     f {
@@ -212,14 +158,14 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
                     s km = $lg(bodInfo, 3) \ 1000
                     s placeId = $lg($g(^JRSearch(SkupinaLinekId,LinkaId,"trasa","DTA",bodId)),1)
                     s place = ##class(User.Zastavky).GetZastavkaName(placeId)
-                    i SmerId = 0 s inRoute = (prvniBod <= bodId) && (bodId <= posledniBod)
-                    i SmerId = 1 s inRoute = (prvniBod >= bodId) && (bodId >= posledniBod)
+                    i SmerId = 0 s isActive = (prvniBod <= bodId) && (bodId <= posledniBod)
+                    i SmerId = 1 s isActive = (prvniBod >= bodId) && (bodId >= posledniBod)
 
                     d trasa.%Push({
                         "place": (place),
                         "time": (casVBode),
                         "km": (km),
-                        "inRoute": (inRoute)
+                        "isActive": (isActive)
                     })
                 }
 
@@ -231,34 +177,35 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
                 i smerId = 0 s pocetZastavek = posledniBod - prvniBod + 1
                 i smerId = 1 s pocetZastavek = prvniBod - posledniBod + 1
 
-                // Store in temporary array with odjezdMin as key
-                // Use $j to pad odjezdMin for proper sorting and add a counter to handle duplicate times
-                s counter = $i(tempArray(odjezdMin))
-                s tempArray(odjezdMin,counter) = {
-                    "SkupinaLinekId": (SkupinaLinekId),
-                    "LinkaID": (LinkaId),
-                    "SpojID": (SpojId),
+                s dateEnglishFormat = $p(dateTime, " ", 1)
+                s dateCzechFormat = $tr($zd($zdh(dateEnglishFormat, 3),4),"/",".")
+
+                s directRoute = {
+                    "Datum": (dateCzechFormat),
                     "ZeStanice": (nazevZastavky1),
                     "DoStanice": (nazevZastavky2),
                     "Odjezd": (odjezd),
                     "Prijezd": (prijezd),
-                    "Trasa": (trasa),
-                    "Vzdalenost": (vzdalenost),
-                    "DobaJizdy": (dobaJizdy),
-                    "PocetZastavek": (pocetZastavek)
+                    "PrestupStanice": "",
+                    "PrvniUsek": {
+                        "ZeStanice": (nazevZastavky1),
+                        "DoStanice": (nazevZastavky2),
+                        "Odjezd": (odjezd),
+                        "Prijezd": (prijezd),
+                        "LinkaID": (LinkaId),
+                        "SkupinaLinekId": (SkupinaLinekId),
+                        "SpojID": (SpojId),
+                        "Vzdalenost": (vzdalenost),
+                        "Trasa": (trasa)
+                    },
+                    "DruhyUsek": "",
+                    "CelkovaVzdalenost": (vzdalenost),
+                    "CelkovaDobaJizdy": (dobaJizdy),
+                    "PocetPrestupu": 0
                 }
-            }
-        }
-    }
 
-    s result = []
-    s odjezdMin = ""
-    f {
-        s odjezdMin = $o(tempArray(odjezdMin)) q:odjezdMin=""
-        s counter = ""
-        f {
-            s counter = $o(tempArray(odjezdMin,counter)) q:counter=""
-            d result.%Push(tempArray(odjezdMin,counter))
+                d result.%Push(directRoute)
+            }
         }
     }
 
@@ -267,6 +214,14 @@ ClassMethod NajdiSpojeBezPrestupu(zastavka1Id As %String, zastavka2Id As %String
 
 ClassMethod NajdiSpojeJedenPrestup(zastavka1Id As %String, zastavka2Id As %String, dateTime As %String) As %Library.DynamicObject
 {
+    // First check for direct routes
+    s directRoutes = ..NajdiSpojeBezPrestupu(zastavka1Id, zastavka2Id, dateTime)
+    
+    // If direct routes exist, return them
+    if directRoutes.%Size() > 0 {
+        ret directRoutes
+    }
+    
     // Initial setup
     s min = ##class(User.Utils).ISO86012Min(dateTime)
     
@@ -342,7 +297,7 @@ ClassMethod NajdiSpojeJedenPrestup(zastavka1Id As %String, zastavka2Id As %Strin
                 i departureTime < arrivalTime {
                     // Validate transfer timing
                     s isValidTransfer = 0
-                    s firstLegStations = firstLeg.Trasa
+                    s firstLegStations = firstLeg.PrvniUsek.Trasa
                     
                     f k=1:1:firstLegStations.%Size() {
                         s station = firstLegStations.%Get(k-1)
@@ -371,9 +326,44 @@ ClassMethod NajdiSpojeJedenPrestup(zastavka1Id As %String, zastavka2Id As %Strin
                    (bestArrivalTime < ##class(User.Utils).HHMM2Min(uniqueDepartures(firstLeg.Odjezd))) {
                     // Store the best arrival time for this departure
                     s uniqueDepartures(firstLeg.Odjezd) = bestSecondLeg.Prijezd
+
+                    s dateEnglishFormat = $p(dateTime, " ", 1)
+                    s dateCzechFormat = $tr($zd($zdh(dateEnglishFormat, 3),4),"/",".")
                     
-                    // Create and store the combined route
-                    s combinedRoute = ..CombineRoutes(firstLeg, bestSecondLeg)
+                    // Create combined route using the new structure
+                    s combinedRoute = {
+                        "Datum": (dateCzechFormat),
+                        "ZeStanice": (firstLeg.ZeStanice),
+                        "DoStanice": (bestSecondLeg.DoStanice),
+                        "Odjezd": (firstLeg.Odjezd),
+                        "Prijezd": (bestSecondLeg.Prijezd),
+                        "PrestupStanice": (bestSecondLeg.ZeStanice),
+                        "PrvniUsek": {
+                            "ZeStanice": (firstLeg.PrvniUsek.ZeStanice),
+                            "DoStanice": (firstLeg.PrvniUsek.DoStanice),
+                            "Odjezd": (firstLeg.PrvniUsek.Odjezd),
+                            "Prijezd": (firstLeg.PrvniUsek.Prijezd),
+                            "LinkaID": (firstLeg.PrvniUsek.LinkaID),
+                            "SkupinaLinekId": (firstLeg.PrvniUsek.SkupinaLinekId),
+                            "SpojID": (firstLeg.PrvniUsek.SpojID),
+                            "Vzdalenost": (firstLeg.PrvniUsek.Vzdalenost),
+                            "Trasa": (firstLeg.PrvniUsek.Trasa)
+                        },
+                        "DruhyUsek": {
+                            "ZeStanice": (bestSecondLeg.PrvniUsek.ZeStanice),
+                            "DoStanice": (bestSecondLeg.PrvniUsek.DoStanice),
+                            "Odjezd": (bestSecondLeg.PrvniUsek.Odjezd),
+                            "Prijezd": (bestSecondLeg.PrvniUsek.Prijezd),
+                            "LinkaID": (bestSecondLeg.PrvniUsek.LinkaID),
+                            "SkupinaLinekId": (bestSecondLeg.PrvniUsek.SkupinaLinekId),
+                            "SpojID": (bestSecondLeg.PrvniUsek.SpojID),
+                            "Vzdalenost": (bestSecondLeg.PrvniUsek.Vzdalenost),
+                            "Trasa": (bestSecondLeg.PrvniUsek.Trasa)
+                        },
+                        "CelkovaVzdalenost": (firstLeg.PrvniUsek.Vzdalenost + bestSecondLeg.PrvniUsek.Vzdalenost),
+                        "CelkovaDobaJizdy": (##class(User.Utils).HHMM2Min(bestSecondLeg.Prijezd) - ##class(User.Utils).HHMM2Min(firstLeg.Odjezd)),
+                        "PocetPrestupu": 1
+                    }
                     
                     // Remove any existing route with this departure time
                     f l=0:1:resultSpoje.%Size()-1 {

@@ -5,17 +5,17 @@ import {
   Box,
   Typography,
   IconButton,
+  Alert,
+  Collapse,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import dayjs from "dayjs";
 import "./App.css";
 
 import StationSelector from "./components/StationSelector";
 import TripResults from "./components/TripResults";
-import TripResultTest from "./components/TripResultTest";
 
 const API_BASE_URL = "http://localhost:52773/csp/user";
 
@@ -29,10 +29,22 @@ const App = () => {
   const [searchResult, setSearchResult] = useState("");
   const [showInfoBox, setShowInfoBox] = useState(false);
   const [trips, setTrips] = useState(null);
+  const [validationMessage, setValidationMessage] = useState("");
+  const [showAlert, setShowAlert] = useState(false);
 
   useEffect(() => {
     loadStations();
   }, []);
+
+  useEffect(() => {
+    let timer;
+    if (showAlert) {
+      timer = setTimeout(() => {
+        setShowAlert(false);
+      }, 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [showAlert]);
 
   const loadStations = async () => {
     setLoading(true);
@@ -48,14 +60,34 @@ const App = () => {
     }
   };
 
+  const validateForm = () => {
+    const missingFields = [];
+    
+    if (!fromStation) {
+      missingFields.push("místo odjezdu");
+    }
+    if (!toStation) {
+      missingFields.push("místo příjezdu");
+    }
+    if (!dateTime) {
+      missingFields.push("datum a čas odjezdu");
+    }
+
+    if (missingFields.length > 0) {
+      setValidationMessage(`Prosím vyplňte: ${missingFields.join(", ")}`);
+      setShowAlert(true);
+      return false;
+    }
+    return true;
+  };
+
   const handleSearch = async () => {
-    if (fromStation && toStation && dateTime) {
+    if (validateForm()) {
       setSearchResult(
         `Hledám spoj z: ${fromStation.label} do: ${toStation.label} dne: ${dateTime.format(
           "DD.MM.YYYY"
         )} v čase: ${dateTime.format("HH:mm")}`
       );
-      // setShowInfoBox(true);
       
       try {
         const params = {
@@ -71,14 +103,11 @@ const App = () => {
             'Content-Type': 'application/json',
           }
         });
-        console.log(response.data)
-        
+        console.log(response.data);
         setTrips(response.data);
       } catch(err) {
         console.error("API Error:", err.response?.data || err.message);
       }
-    } else {
-      setSearchResult("Prosím vyberte místo odjezdu, příjezdu a čas odjezdu.");
     }
   };
 
@@ -107,8 +136,16 @@ const App = () => {
           padding: 2,
         }}
       >
-        {/* Removed the extra Box wrapper */}
-        {/* {trips && <TripResultTest routes={trips} />} */}
+        <Collapse in={showAlert}>
+          <Alert 
+            severity="warning" 
+            sx={{ mb: 2 }}
+            onClose={() => setShowAlert(false)}
+          >
+            {validationMessage}
+          </Alert>
+        </Collapse>
+
         <StationSelector
           fromStation={fromStation}
           toStation={toStation}
